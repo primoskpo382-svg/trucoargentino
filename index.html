@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Truco Argentino 1v1 - Cartas Espadas Custom</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SDK de Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .carta-truco {
+            transition: all 0.2s ease-in-out;
+        }
+        .carta-truco:hover:not(:disabled) {
+            transform: translateY(-6px) scale(1.05);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-white min-h-screen flex flex-col items-center justify-center p-3 select-none">
+
+    <div class="bg-slate-900/90 p-5 rounded-3xl shadow-2xl w-full max-w-lg text-center border border-slate-800 backdrop-blur-md">
+        <h1 class="text-3xl font-black text-amber-400 mb-4 tracking-wider uppercase drop-shadow-md">♠️ Truco Argentino ⚔️</h1>
+
+        <!-- Menú / Lobby Principal -->
+        <div id="menu-salas" class="space-y-4 my-4">
+            <button onclick="window.crearSala()" class="w-full bg-emerald-600 hover:bg-emerald-500 font-extrabold text-lg py-3.5 px-6 rounded-2xl transition shadow-lg hover:shadow-emerald-900/50 cursor-pointer border border-emerald-400/30">
+                ➕ Crear Nueva Sala
+            </button>
+
+            <div class="border-t border-slate-800 pt-3 text-left">
+                <div class="flex justify-between items-center mb-2 px-1">
+                    <span class="text-xs font-black text-slate-400 uppercase tracking-wider">Salas Disponibles</span>
+                    <button onclick="window.cargarLobbySalas()" class="text-[11px] text-amber-400 hover:underline">🔄 Actualizar</button>
+                </div>
+
+                <!-- Contenedor de la lista de salas disponibles -->
+                <div id="lista-salas" class="space-y-2 max-h-56 overflow-y-auto pr-1">
+                    <div class="text-xs text-slate-500 italic text-center py-4">Buscando partidas disponibles...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel de Juego -->
+        <div id="panel-juego" class="hidden space-y-4">
+            
+            <!-- Encabezado de Estado -->
+            <div class="flex justify-between items-center text-xs text-slate-400 font-mono border-b border-slate-800 pb-2 px-1">
+                <span id="sala-info" class="bg-slate-800 px-2 py-1 rounded-md">Sala: -</span>
+                <span id="rol-info" class="text-emerald-400 font-bold">Rol: -</span>
+                <span id="turno-info" class="text-amber-400 font-bold bg-amber-950/40 px-2.5 py-1 rounded-md border border-amber-500/30">Turno: -</span>
+            </div>
+
+            <!-- Marcador de Puntos -->
+            <div class="grid grid-cols-2 gap-3 bg-slate-950 p-2.5 rounded-2xl border border-slate-800 shadow-inner">
+                <div class="bg-indigo-950/40 border border-indigo-800/40 p-2.5 rounded-xl">
+                    <div class="text-[11px] font-black text-indigo-400 uppercase tracking-widest">YO</div>
+                    <div id="pts-yo" class="text-4xl font-black text-indigo-200">0</div>
+                </div>
+                <div class="bg-rose-950/40 border border-rose-800/40 p-2.5 rounded-xl">
+                    <div class="text-[11px] font-black text-rose-400 uppercase tracking-widest">ÉL</div>
+                    <div id="pts-el" class="text-4xl font-black text-rose-200">0</div>
+                </div>
+            </div>
+
+            <!-- Mesa de Juego estilo Tapete Verde -->
+            <div class="bg-gradient-to-b from-emerald-900 to-emerald-950 border-4 border-emerald-800 rounded-3xl p-4 min-h-[220px] flex flex-col justify-between relative shadow-2xl shadow-emerald-950/80">
+                <div id="estado-mensaje" class="text-xs font-bold text-emerald-200 text-center mb-2 bg-emerald-950/80 py-1.5 px-3 rounded-full border border-emerald-700/50 shadow">
+                    Esperando jugador...
+                </div>
+
+                <!-- Historial de las 3 Rondas -->
+                <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                    <div class="bg-slate-950/70 p-2 rounded-xl border border-emerald-700/30 backdrop-blur-sm">
+                        <div class="text-[10px] text-slate-400 font-black border-b border-slate-800 pb-1 mb-1.5">1ª RONDA</div>
+                        <div id="r1-yo" class="text-indigo-300 font-bold min-h-[60px] flex items-center justify-center">-</div>
+                        <div id="r1-el" class="text-rose-300 font-bold min-h-[60px] flex items-center justify-center border-t border-slate-800/50 mt-1 pt-1">-</div>
+                    </div>
+                    <div class="bg-slate-950/70 p-2 rounded-xl border border-emerald-700/30 backdrop-blur-sm">
+                        <div class="text-[10px] text-slate-400 font-black border-b border-slate-800 pb-1 mb-1.5">2ª RONDA</div>
+                        <div id="r2-yo" class="text-indigo-300 font-bold min-h-[60px] flex items-center justify-center">-</div>
+                        <div id="r2-el" class="text-rose-300 font-bold min-h-[60px] flex items-center justify-center border-t border-slate-800/50 mt-1 pt-1">-</div>
+                    </div>
+                    <div class="bg-slate-950/70 p-2 rounded-xl border border-emerald-700/30 backdrop-blur-sm">
+                        <div class="text-[10px] text-slate-400 font-black border-b border-slate-800 pb-1 mb-1.5">3ª RONDA</div>
+                        <div id="r3-yo" class="text-indigo-300 font-bold min-h-[60px] flex items-center justify-center">-</div>
+                        <div id="r3-el" class="text-rose-300 font-bold min-h-[60px] flex items-center justify-center border-t border-slate-800/50 mt-1 pt-1">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel de Respuesta a Cantos -->
+            <div id="panel-respuesta" class="bg-amber-950/95 border-2 border-amber-500/80 p-3.5 rounded-2xl hidden shadow-2xl animate-pulse">
+                <div id="texto-canto-rival" class="text-xs font-black text-amber-200 mb-2.5 uppercase tracking-wide">¡Te cantaron!</div>
+                <div class="flex gap-2 justify-center flex-wrap">
+                    <button onclick="window.responder(true)" class="bg-emerald-600 hover:bg-emerald-500 text-xs font-black py-2.5 px-4 rounded-xl cursor-pointer shadow-md">¡Quiero!</button>
+                    
+                    <div id="botones-recanto-envido" class="flex gap-1 hidden">
+                        <button onclick="window.cantar('Envido')" class="bg-amber-600 hover:bg-amber-500 text-xs font-bold py-2 px-2 rounded-lg cursor-pointer">Envido</button>
+                        <button onclick="window.cantar('Real Envido')" class="bg-amber-700 hover:bg-amber-600 text-xs font-bold py-2 px-2 rounded-lg cursor-pointer">Real Envido</button>
+                        <button onclick="window.cantar('Falta Envido')" class="bg-red-700 hover:bg-red-600 text-xs font-bold py-2 px-2 rounded-lg cursor-pointer">Falta Envido</button>
+                    </div>
+
+                    <button id="btn-recantar-truco" onclick="window.recantarTruco()" class="bg-amber-600 hover:bg-amber-500 text-xs font-black py-2.5 px-4 rounded-xl cursor-pointer hidden shadow-md">Subir Apuesta</button>
+                    
+                    <button onclick="window.responder(false)" class="bg-rose-700 hover:bg-rose-600 text-xs font-black py-2.5 px-4 rounded-xl cursor-pointer shadow-md">No quiero</button>
+                </div>
+            </div>
+
+            <!-- Botones de Canto Principal -->
+            <div id="panel-cantos" class="grid grid-cols-3 gap-2">
+                <div id="bloque-envidos" class="flex gap-1 col-span-1">
+                    <button onclick="window.cantar('Envido')" class="w-full bg-amber-600 hover:bg-amber-500 text-[11px] font-bold py-2 px-1 rounded-xl transition cursor-pointer shadow">Envido</button>
+                    <button onclick="window.cantar('Real Envido')" class="w-full bg-amber-700 hover:bg-amber-600 text-[11px] font-bold py-2 px-1 rounded-xl transition cursor-pointer shadow">Real</button>
+                    <button onclick="window.cantar('Falta Envido')" class="w-full bg-red-700 hover:bg-red-600 text-[11px] font-bold py-2 px-1 rounded-xl transition cursor-pointer shadow">Falta</button>
+                </div>
+                <button id="btn-truco" onclick="window.cantarTrucoDinamico()" class="bg-orange-600 hover:bg-orange-500 text-xs font-extrabold py-2 px-2 rounded-xl transition cursor-pointer shadow">¡Truco!</button>
+                <button onclick="window.cantar('Maso')" class="bg-rose-800 hover:bg-rose-700 text-xs font-extrabold py-2 px-2 rounded-xl transition cursor-pointer shadow">Irse al Maso</button>
+            </div>
+
+            <!-- Mis Cartas en Mano -->
+            <div class="text-left bg-slate-950 p-3.5 rounded-2xl border border-slate-800">
+                <div class="text-[11px] text-slate-400 font-black mb-2.5 uppercase tracking-wider">Tus Cartas:</div>
+                <div id="contenedor-mano" class="flex gap-3 justify-center min-h-[110px] items-center">
+                    <span class="text-xs text-slate-500 italic">Esperando que se reparta la mano...</span>
+                </div>
+            </div>
+
+            <button onclick="window.cancelarSala()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-xs py-2.5 px-4 rounded-xl transition cursor-pointer">
+                Salir de la Partida
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://olvieohhsybycmyojdpo.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_sBg5zRa3r3FS1pJGC5IwNg_Ca4Gy5An';
+
+        let supabaseClient = null;
+        let salaId = null;
+        let soyJ1 = false;
+        let canal = null;
+        let canalLobby = null;
+
+        const PALOS_ICONOS = { E: '⚔️', B: '🪵', C: '🏆', O: '🪙' };
+        const PALOS_COLORES = { E: 'text-blue-400 border-blue-500/40', B: 'text-emerald-400 border-emerald-500/40', C: 'text-rose-400 border-rose-500/40', O: 'text-amber-400 border-amber-500/40' };
+
+        // Mapeo de URLs para el palo de Espadas
+        const IMAGENES_ESPADAS = {
+            '1E': 'https://www.tarotamigo.com/wp-content/uploads/2025/04/carta-as-espadas-derecho.jpg',
+            '2E': 'https://www.tarotamigo.com/wp-content/uploads/2025/03/carta-dos-espadas.jpg',
+            '3E': 'https://www.tarotamigo.com/wp-content/uploads/2025/03/palo-espadas-derecha.jpg',
+            '4E': 'https://www.tarotamigo.com/wp-content/uploads/2025/03/cuatro-derecho.jpg',
+            '5E': 'https://www.tarotamigo.com/wp-content/uploads/2025/03/carta-palo-espadas-cinco.jpg',
+            '6E': 'https://www.tarotamigo.com/wp-content/uploads/2025/03/carta-palo-espadas.jpg',
+            '7E': 'https://www.tarotamigo.com/wp-content/uploads/2025/03/carta-palo-espadas-siete.jpg',
+            '10E': 'https://www.tarotamigo.com/wp-content/uploads/2025/03/sota-al-reves.jpg',
+            '11E': 'https://www.tarotamigo.com/wp-content/uploads/2025/03/caballo-derecho-espadas.jpg',
+            '12E': 'https://www.tarotamigo.com/wp-content/uploads/2025/03/rey-baraja-espanola.jpg'
+        };
+
+        const MAZO = [
+            { id: '1E', txt: '1 Espada', num: '1', poder: 14, envido: 1, palo: 'E', img: IMAGENES_ESPADAS['1E'] },
+            { id: '1B', txt: '1 Basto', num: '1', poder: 13, envido: 1, palo: 'B' },
+            { id: '7E', txt: '7 Espada', num: '7', poder: 12, envido: 7, palo: 'E', img: IMAGENES_ESPADAS['7E'] },
+            { id: '7O', txt: '7 Oro', num: '7', poder: 11, envido: 7, palo: 'O' },
+            { id: '3E', txt: '3 Espada', num: '3', poder: 10, envido: 3, palo: 'E', img: IMAGENES_ESPADAS['3E'] },
+            { id: '3B', txt: '3 Basto', num: '3', poder: 10, envido: 3, palo: 'B' },
+            { id: '3C', txt: '3 Copa', num: '3', poder: 10, envido: 3, palo: 'C' },
+            { id: '3O', txt: '3 Oro', num: '3', poder: 10, envido: 3, palo: 'O' },
+            { id: '2E', txt: '2 Espada', num: '2', poder: 9, envido: 2, palo: 'E', img: IMAGENES_ESPADAS['2E'] },
+            { id: '2B', txt: '2 Basto', num: '2', poder: 9, envido: 2, palo: 'B' },
+            { id: '2C', txt: '2 Copa', num: '2', poder: 9, envido: 2, palo: 'C' },
+            { id: '2O', txt: '2 Oro', num: '2', poder: 9, envido: 2, palo: 'O' },
+            { id: '1C', txt: '1 Copa', num: '1', poder: 8, envido: 1, palo: 'C' },
+            { id: '1O', txt: '1 Oro', num: '1', poder: 8, envido: 1, palo: 'O' },
+            { id: '12E', txt: '12 Espada', num: '12', poder: 7, envido: 0, palo: 'E', img: IMAGENES_ESPADAS['12E'] },
+            { id: '12B', txt: '12 Basto', num: '12', poder: 7, envido: 0, palo: 'B' },
+            { id: '12C', txt: '12 Copa', num: '12', poder: 7, envido: 0, palo: 'C' },
+            { id: '12O', txt: '12 Oro', num: '12', poder: 7, envido: 0, palo: 'O' },
+            { id: '11E', txt: '11 Espada', num: '11', poder: 6, envido: 0, palo: 'E', img: IMAGENES_ESPADAS['11E'] },
+            { id: '11B', txt: '11 Basto', num: '11', poder: 6, envido: 0, palo: 'B' },
+            { id: '11C', txt: '11 Copa', num: '11', poder: 6, envido: 0, palo: 'C' },
+            { id: '11O', txt: '11 Oro', num: '11', poder: 0, envido: 0, palo: 'O' },
+            { id: '10E', txt: '10 Espada', num: '10', poder: 5, envido: 0, palo: 'E', img: IMAGENES_ESPADAS['10E'] },
+            { id: '10B', txt: '10 Basto', num: '10', poder: 5, envido: 0, palo: 'B' },
+            { id: '10C', txt: '10 Copa', num: '10', poder: 5, envido: 0, palo: 'C' },
+            { id: '10O', txt: '10 Oro', num: '10', poder: 5, envido: 0, palo: 'O' },
+            { id: '7C', txt: '7 Copa', num: '7', poder: 4, envido: 7, palo: 'C' },
+            { id: '7B', txt: '7 Basto', num: '7', poder: 4, envido: 7, palo: 'B' },
+            { id: '6E', txt: '6 Espada', num: '6', poder: 3, envido: 6, palo: 'E', img: IMAGENES_ESPADAS['6E'] },
+            { id: '6B', txt: '6 Basto', num: '6', poder: 3, envido: 6, palo: 'B' },
+            { id: '6C', txt: '6 Copa', num: '6', poder: 3, envido: 6, palo: 'C' },
+            { id: '6O', txt: '6 Oro', num: '6', poder: 3, envido: 6, palo: 'O' },
+            { id: '5E', txt: '5 Espada', num: '5', poder: 2, envido: 5, palo: 'E', img: IMAGENES_ESPADAS['5E'] },
+            { id: '5B', txt: '5 Basto', num: '5', poder: 2, envido: 5, palo: 'B' },
+            { id: '5C', txt: '5 Copa', num: '5', poder: 2, envido: 5, palo: 'C' },
+            { id: '5O', txt: '5 Oro', num: '5', poder: 2, envido: 5, palo: 'O' },
+            { id: '4E', txt: '4 Espada', num: '4', poder: 1, envido: 4, palo: 'E', img: IMAGENES_ESPADAS['4E'] },
+            { id: '4B', txt: '4 Basto', num: '4', poder: 1, envido: 4, palo: 'B' },
+            { id: '4C', txt: '4 Copa', num: '4', poder: 1, envido: 4, palo: 'C' },
+            { id: '4O', txt: '4 Oro', num: '4', poder: 1, envido: 4, palo: 'O' }
+        ];
+
+        try {
+            if (window.supabase) {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            }
+        } catch(e) {}
+
+        let estadoJuego = {
+            ptsJ1: 0,
+            ptsJ2: 0,
+            rondaActual: 1,
+            manoJugador: 'J1',
+            turnoActual: 'J1',
+            cartasJ1: [],
+            cartasJ2: [],
+            mesaR1: { J1: null, J2: null },
+            mesaR2: { J1: null, J2: null },
+            mesaR3: { J1: null, J2: null },
+            cantosPendientes: null,
+            nivelTruco: 1,
+            ultimoQueCantoTruco: null,
+            puntosEnvidoEnJuego: 0,
+            puntosEnvidoRechazo: 1,
+            envidoCantado: false,
+            historialEnvido: [],
+            mensajeEstado: 'Esperando conexiones...'
+        };
+
+        window.onload = () => {
+            window.cargarLobbySalas();
+            escucharLobbyRealtime();
+        };
+
+        window.cargarLobbySalas = async function() {
+            if (!supabaseClient) return;
+
+            const { data, error } = await supabaseClient
+                .from('salas')
+                .select('id, estado')
+                .eq('estado', 'ESPERANDO_J2');
+
+            const contenedor = document.getElementById('lista-salas');
+            
+            if (error || !data || data.length === 0) {
+                contenedor.innerHTML = `<div class="text-xs text-slate-500 italic text-center py-4">No hay salas abiertas. ¡Creá una para jugar!</div>`;
+                return;
+            }
+
+            contenedor.innerHTML = '';
+            data.forEach(s => {
+                const item = document.createElement('div');
+                item.className = "bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 p-2.5 rounded-xl flex justify-between items-center transition shadow-sm";
+                item.innerHTML = `
+                    <div class="text-left">
+                        <div class="text-xs font-black text-amber-300">Mesa #${s.id}</div>
+                        <div class="text-[10px] text-emerald-400 font-bold">● Esperando rival</div>
+                    </div>
+                    <button onclick="window.unirseADeterminadaSala(${s.id})" class="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs py-1.5 px-3.5 rounded-lg transition cursor-pointer shadow">
+                        Unirse
+                    </button>
+                `;
+                contenedor.appendChild(item);
+            });
+        };
+
+        function escucharLobbyRealtime() {
+            if (!supabaseClient) return;
+
+            canalLobby = supabaseClient
+                .channel('public:lobby_salas')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'salas' }, () => {
+                    window.cargarLobbySalas();
+                })
+                .subscribe();
+        }
+
+        window.crearSala = async function() {
+            if (!supabaseClient) return;
+            const idGen = Math.floor(Math.random() * 89999) + 10000;
+
+            const { data, error } = await supabaseClient
+                .from('salas')
+                .insert([{ id: idGen, estado: 'ESPERANDO_J2', jugador1: 'J1_CONECTADO' }])
+                .select().single();
+
+            if (error) { alert("Error al crear sala: " + error.message); return; }
+
+            salaId = data.id;
+            soyJ1 = true;
+
+            document.getElementById('menu-salas').classList.add('hidden');
+            document.getElementById('panel-juego').classList.remove('hidden');
+            document.getElementById('sala-info').innerText = `Mesa: #${salaId}`;
+            document.getElementById('rol-info').innerText = `Rol: Creador`;
+
+            escucharCanalRealtime();
+        };
+
+        window.unirseADeterminadaSala = async function(idElegida) {
+            salaId = idElegida;
+            soyJ1 = false;
+
+            document.getElementById('menu-salas').classList.add('hidden');
+            document.getElementById('panel-juego').classList.remove('hidden');
+            document.getElementById('sala-info').innerText = `Mesa: #${salaId}`;
+            document.getElementById('rol-info').innerText = `Rol: Rival`;
+
+            escucharCanalRealtime();
+            await enviarAccionSupabase('J2_UNIDO', {});
+        };
+
+        async function repartirNuevaMano(manoEspecifica) {
+            if (!soyJ1) return;
+
+            const mazoMezclado = [...MAZO].sort(() => Math.random() - 0.5);
+            const proximaMano = manoEspecifica || (estadoJuego.manoJugador === 'J1' ? 'J2' : 'J1');
+
+            estadoJuego.cartasJ1 = [mazoMezclado[0], mazoMezclado[1], mazoMezclado[2]];
+            estadoJuego.cartasJ2 = [mazoMezclado[3], mazoMezclado[4], mazoMezclado[5]];
+            estadoJuego.rondaActual = 1;
+            estadoJuego.manoJugador = proximaMano;
+            estadoJuego.turnoActual = proximaMano;
+            estadoJuego.mesaR1 = { J1: null, J2: null };
+            estadoJuego.mesaR2 = { J1: null, J2: null };
+            estadoJuego.mesaR3 = { J1: null, J2: null };
+            estadoJuego.nivelTruco = 1;
+            estadoJuego.ultimoQueCantoTruco = null;
+            estadoJuego.envidoCantado = false;
+            estadoJuego.puntosEnvidoEnJuego = 0;
+            estadoJuego.puntosEnvidoRechazo = 1;
+            estadoJuego.historialEnvido = [];
+            estadoJuego.cantosPendientes = null;
+            estadoJuego.mensajeEstado = `¡Nueva mano repartida!`;
+
+            await enviarAccionSupabase('NUEVA_MANO', estadoJuego);
+        }
+
+        async function enviarAccionSupabase(tipo, payloadData) {
+            const dataString = JSON.stringify({ tipo, data: payloadData, timestamp: Date.now() });
+            await supabaseClient.from('salas').update({ estado: dataString }).eq('id', salaId);
+        }
+
+        function escucharCanalRealtime() {
+            if (canal) supabaseClient.removeChannel(canal);
+
+            canal = supabaseClient
+                .channel('public:salas_' + salaId)
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'salas', filter: 'id=eq.' + salaId },
+                    payload => {
+                        try {
+                            const raw = payload.new.estado;
+                            if (!raw) return;
+                            const paquete = JSON.parse(raw);
+                            procesarAccionRed(paquete.tipo, paquete.data);
+                        } catch(e) {}
+                    }
+                ).subscribe();
+        }
+
+        function procesarAccionRed(tipo, data) {
+            if (tipo === 'J2_UNIDO' && soyJ1) {
+                repartirNuevaMano('J1');
+                return;
+            }
+
+            if (tipo === 'NUEVA_MANO' || tipo === 'ACTUALIZAR_ESTADO') {
+                estadoJuego = data;
+                actualizarInterfaz();
+            }
+        }
+
+        function renderizarCartaHTML(cartaObj) {
+            if (!cartaObj) return '-';
+            if (cartaObj.img) {
+                return `<img src="${cartaObj.img}" alt="${cartaObj.txt}" class="w-12 h-18 object-contain rounded shadow border border-slate-700 mx-auto bg-white" />`;
+            }
+            return `<span class="${PALOS_COLORES[cartaObj.palo]} font-black">${cartaObj.num} ${PALOS_ICONOS[cartaObj.palo]}</span>`;
+        }
+
+        function actualizarInterfaz() {
+            const miRol = soyJ1 ? 'J1' : 'J2';
+            const rivalRol = soyJ1 ? 'J2' : 'J1';
+
+            document.getElementById('pts-yo').innerText = soyJ1 ? estadoJuego.ptsJ1 : estadoJuego.ptsJ2;
+            document.getElementById('pts-el').innerText = soyJ1 ? estadoJuego.ptsJ2 : estadoJuego.ptsJ1;
+
+            const miTurno = estadoJuego.turnoActual === miRol;
+            
+            document.getElementById('turno-info').innerText = `Turno: ${miTurno ? 'TUYO' : 'DEL RIVAL'} ${estadoJuego.manoJugador === miRol ? '(Mano)' : '(Pie)'}`;
+
+            document.getElementById('r1-yo').innerHTML = renderizarCartaHTML(estadoJuego.mesaR1[miRol]);
+            document.getElementById('r1-el').innerHTML = renderizarCartaHTML(estadoJuego.mesaR1[rivalRol]);
+            document.getElementById('r2-yo').innerHTML = renderizarCartaHTML(estadoJuego.mesaR2[miRol]);
+            document.getElementById('r2-el').innerHTML = renderizarCartaHTML(estadoJuego.mesaR2[rivalRol]);
+            document.getElementById('r3-yo').innerHTML = renderizarCartaHTML(estadoJuego.mesaR3[miRol]);
+            document.getElementById('r3-el').innerHTML = renderizarCartaHTML(estadoJuego.mesaR3[rivalRol]);
+
+            const misCartasActuales = soyJ1 ? estadoJuego.cartasJ1 : estadoJuego.cartasJ2;
+            const contenedor = document.getElementById('contenedor-mano');
+            contenedor.innerHTML = '';
+
+            misCartasActuales.forEach((carta) => {
+                const btn = document.createElement('button');
+                btn.className = `carta-truco bg-slate-900 border-2 border-slate-700 flex items-center justify-center w-16 h-24 rounded-xl p-1 shadow-lg cursor-pointer overflow-hidden ${miTurno && !estadoJuego.cantosPendientes ? 'opacity-100' : 'opacity-40 cursor-not-allowed'}`;
+                btn.disabled = !miTurno || estadoJuego.cantosPendientes !== null;
+                btn.onclick = () => tirarcarta(carta);
+
+                if (carta.img) {
+                    btn.innerHTML = `<img src="${carta.img}" alt="${carta.txt}" class="w-full h-full object-cover bg-white rounded-lg" />`;
+                } else {
+                    btn.className += ` ${PALOS_COLORES[carta.palo]}`;
+                    btn.innerHTML = `
+                        <div class="flex flex-col justify-between items-center w-full h-full p-1">
+                            <div class="text-[11px] font-black self-start leading-none">${carta.num}</div>
+                            <div class="text-lg leading-none my-auto">${PALOS_ICONOS[carta.palo]}</div>
+                            <div class="text-[11px] font-black self-end leading-none">${carta.num}</div>
+                        </div>
+                    `;
+                }
+                contenedor.appendChild(btn);
+            });
+
+            const btnTruco = document.getElementById('btn-truco');
+            if (estadoJuego.ultimoQueCantoTruco === miRol || estadoJuego.nivelTruco >= 4) {
+                btnTruco.classList.add('hidden');
+            } else {
+                btnTruco.classList.remove('hidden');
+                if (estadoJuego.nivelTruco === 1) btnTruco.innerText = '¡Truco!';
+                else if (estadoJuego.nivelTruco === 2) btnTruco.innerText = '¡Retruco!';
+                else if (estadoJuego.nivelTruco === 3) btnTruco.innerText = '¡Vale Cuatro!';
+            }
+
+            const bloqueEnvidos = document.getElementById('bloque-envidos');
+            const cartaManoMesa = estadoJuego.mesaR1[estadoJuego.manoJugador];
+            const cartaPieMesa = estadoJuego.mesaR1[estadoJuego.manoJugador === 'J1' ? 'J2' : 'J1'];
+
+            let puedeCantarEnvido = false;
+            if (estadoJuego.rondaActual === 1 && !estadoJuego.envidoCantado) {
+                if (!cartaManoMesa && estadoJuego.manoJugador === miRol) {
+                    puedeCantarEnvido = true;
+                } else if (cartaManoMesa && !cartaPieMesa && estadoJuego.manoJugador !== miRol) {
+                    puedeCantarEnvido = true;
+                }
+            }
+
+            if (puedeCantarEnvido) bloqueEnvidos.classList.remove('hidden');
+            else bloqueEnvidos.classList.add('hidden');
+
+            if (estadoJuego.cantosPendientes) {
+                const paraMi = estadoJuego.cantosPendientes.para === miRol;
+                if (paraMi) {
+                    document.getElementById('texto-canto-rival').innerText = `¡Él te cantó ${estadoJuego.cantosPendientes.tipo}!`;
+                    document.getElementById('panel-respuesta').classList.remove('hidden');
+                    
+                    const recantoEnvido = document.getElementById('botones-recanto-envido');
+                    const recantoTruco = document.getElementById('btn-recantar-truco');
+
+                    if (estadoJuego.cantosPendientes.tipo.includes('Envido') || estadoJuego.cantosPendientes.tipo.includes('Real') || estadoJuego.cantosPendientes.tipo.includes('Falta')) {
+                        recantoEnvido.classList.remove('hidden');
+                        recantoTruco.classList.add('hidden');
+                    } else if (estadoJuego.cantosPendientes.tipo.includes('Truco') || estadoJuego.cantosPendientes.tipo.includes('Retruco')) {
+                        recantoTruco.classList.remove('hidden');
+                        recantoEnvido.classList.add('hidden');
+                        recantoTruco.innerText = estadoJuego.cantosPendientes.tipo === 'Truco' ? '¡Retruco!' : '¡Vale Cuatro!';
+                    } else {
+                        recantoEnvido.classList.add('hidden');
+                        recantoTruco.classList.add('hidden');
+                    }
+                } else {
+                    document.getElementById('panel-respuesta').classList.add('hidden');
+                    document.getElementById('estado-mensaje').innerText = `Cantaste ${estadoJuego.cantosPendientes.tipo}. Esperando respuesta...`;
+                }
+            } else {
+                document.getElementById('panel-respuesta').classList.add('hidden');
+                document.getElementById('estado-mensaje').innerText = estadoJuego.mensajeEstado || (miTurno ? '¡Es tu turno de jugar o cantar!' : 'Esperando jugada de él...');
+            }
+        }
+
+        async function tirarcarta(carta) {
+            const miRol = soyJ1 ? 'J1' : 'J2';
+            
+            if (soyJ1) estadoJuego.cartasJ1 = estadoJuego.cartasJ1.filter(c => c.id !== carta.id);
+            else estadoJuego.cartasJ2 = estadoJuego.cartasJ2.filter(c => c.id !== carta.id);
+
+            if (estadoJuego.rondaActual === 1) estadoJuego.mesaR1[miRol] = carta;
+            else if (estadoJuego.rondaActual === 2) estadoJuego.mesaR2[miRol] = carta;
+            else if (estadoJuego.rondaActual === 3) estadoJuego.mesaR3[miRol] = carta;
+
+            const rival = soyJ1 ? 'J2' : 'J1';
+            const mesaRonda = estadoJuego[`mesaR${estadoJuego.rondaActual}`];
+
+            if (!mesaRonda[rival]) {
+                estadoJuego.turnoActual = rival;
+            } else {
+                evaluarFinDeRonda();
+            }
+
+            await enviarAccionSupabase('ACTUALIZAR_ESTADO', estadoJuego);
+        }
+
+        function evaluarFinDeRonda() {
+            const c1 = estadoJuego[`mesaR${estadoJuego.rondaActual}`].J1;
+            const c2 = estadoJuego[`mesaR${estadoJuego.rondaActual}`].J2;
+
+            let ganadorRonda = null;
+            if (c1.poder > c2.poder) ganadorRonda = 'J1';
+            else if (c2.poder > c1.poder) ganadorRonda = 'J2';
+            else ganadorRonda = 'PARDA';
+
+            if (ganadorRonda !== 'PARDA') {
+                estadoJuego.turnoActual = ganadorRonda;
+            } else {
+                estadoJuego.turnoActual = estadoJuego.manoJugador;
+            }
+
+            const g1 = obtenerGanadorRonda(1);
+            const g2 = estadoJuego.rondaActual >= 2 ? obtenerGanadorRonda(2) : null;
+
+            let ganadorMano = null;
+
+            if (estadoJuego.rondaActual === 2) {
+                if (g1 === 'J1' && g2 === 'J1') ganadorMano = 'J1';
+                else if (g1 === 'J2' && g2 === 'J2') ganadorMano = 'J2';
+                else if (g1 === 'J1' && g2 === 'PARDA') ganadorMano = 'J1';
+                else if (g1 === 'J2' && g2 === 'PARDA') ganadorMano = 'J2';
+                else if (g1 === 'PARDA' && g2 !== 'PARDA') ganadorMano = g2;
+            } else if (estadoJuego.rondaActual === 3) {
+                const g3 = obtenerGanadorRonda(3);
+                if (g3 !== 'PARDA') ganadorMano = g3;
+                else ganadorMano = g1 !== 'PARDA' ? g1 : estadoJuego.manoJugador;
+            }
+
+            if (ganadorMano) {
+                const ptsAOtorgar = estadoJuego.nivelTruco;
+                if (ganadorMano === 'J1') estadoJuego.ptsJ1 += ptsAOtorgar;
+                else estadoJuego.ptsJ2 += ptsAOtorgar;
+
+                const soyGanador = (soyJ1 && ganadorMano === 'J1') || (!soyJ1 && ganadorMano === 'J2');
+                estadoJuego.mensajeEstado = `¡Ganó la mano ${soyGanador ? 'YO' : 'ÉL'}! Repartiendo...`;
+
+                setTimeout(() => { if (soyJ1) repartirNuevaMano(); }, 3000);
+            } else {
+                estadoJuego.rondaActual += 1;
+            }
+        }
+
+        function obtenerGanadorRonda(numRonda) {
+            const m = estadoJuego[`mesaR${numRonda}`];
+            if (!m.J1 || !m.J2) return null;
+            if (m.J1.poder > m.J2.poder) return 'J1';
+            if (m.J2.poder > m.J1.poder) return 'J2';
+            return 'PARDA';
+        }
+
+        window.cantarTrucoDinamico = function() {
+            if (estadoJuego.nivelTruco === 1) window.cantar('Truco');
+            else if (estadoJuego.nivelTruco === 2) window.cantar('Retruco');
+            else if (estadoJuego.nivelTruco === 3) window.cantar('Vale Cuatro');
+        };
+
+        window.recantarTruco = function() {
+            if (estadoJuego.cantosPendientes.tipo === 'Truco') window.cantar('Retruco');
+            else if (estadoJuego.cantosPendientes.tipo === 'Retruco') window.cantar('Vale Cuatro');
+        };
+
+        window.cantar = async function(tipo) {
+            const miRol = soyJ1 ? 'J1' : 'J2';
+            const rival = soyJ1 ? 'J2' : 'J1';
+
+            if (tipo === 'Maso') {
+                const ptsNoQuiero = estadoJuego.nivelTruco === 1 ? 1 : estadoJuego.nivelTruco - 1;
+                if (miRol === 'J1') estadoJuego.ptsJ2 += ptsNoQuiero;
+                else estadoJuego.ptsJ1 += ptsNoQuiero;
+
+                estadoJuego.mensajeEstado = `¡Te fuiste al maso! Punto(s) para él. Repartiendo...`;
+                
+                await enviarAccionSupabase('ACTUALIZAR_ESTADO', estadoJuego);
+                setTimeout(() => { if (soyJ1) repartirNuevaMano(); }, 2500);
+                return;
+            }
+
+            if (tipo === 'Envido' || tipo === 'Real Envido' || tipo === 'Falta Envido') {
+                estadoJuego.historialEnvido.push(tipo);
+                
+                let ptsQuiero = 0;
+                let ptsNoQuiero = 1;
+
+                const cadena = estadoJuego.historialEnvido.join(' + ');
+
+                if (cadena === 'Envido') { ptsQuiero = 2; ptsNoQuiero = 1; }
+                else if (cadena === 'Real Envido') { ptsQuiero = 3; ptsNoQuiero = 1; }
+                else if (cadena === 'Envido + Envido') { ptsQuiero = 4; ptsNoQuiero = 2; }
+                else if (cadena === 'Envido + Real Envido') { ptsQuiero = 5; ptsNoQuiero = 2; }
+                else if (cadena === 'Envido + Envido + Real Envido') { ptsQuiero = 7; ptsNoQuiero = 4; }
+                else if (tipo === 'Falta Envido') {
+                    const maxPts = Math.max(estadoJuego.ptsJ1, estadoJuego.ptsJ2);
+                    ptsQuiero = Math.max(1, 15 - maxPts); 
+                    ptsNoQuiero = estadoJuego.puntosEnvidoEnJuego || 1;
+                }
+
+                estadoJuego.puntosEnvidoEnJuego = ptsQuiero;
+                estadoJuego.puntosEnvidoRechazo = ptsNoQuiero;
+            }
+
+            estadoJuego.cantosPendientes = { tipo, de: miRol, para: rival };
+            if (tipo.includes('Truco') || tipo.includes('Retruco') || tipo.includes('Vale')) {
+                estadoJuego.ultimoQueCantoTruco = miRol;
+            }
+            await enviarAccionSupabase('ACTUALIZAR_ESTADO', estadoJuego);
+        };
+
+        window.responder = async function(acepta) {
+            const tipo = estadoJuego.cantosPendientes.tipo;
+            const emisor = estadoJuego.cantosPendientes.de;
+
+            estadoJuego.cantosPendientes = null;
+
+            if (tipo === 'Truco' || tipo === 'Retruco' || tipo === 'Vale Cuatro') {
+                if (acepta) {
+                    if (tipo === 'Truco') estadoJuego.nivelTruco = 2;
+                    else if (tipo === 'Retruco') estadoJuego.nivelTruco = 3;
+                    else if (tipo === 'Vale Cuatro') estadoJuego.nivelTruco = 4;
+                    estadoJuego.mensajeEstado = `¡Se quiso el ${tipo}! A jugar.`;
+                } else {
+                    const ptsAbonados = estadoJuego.nivelTruco === 1 ? 1 : estadoJuego.nivelTruco - 1;
+                    if (emisor === 'J1') estadoJuego.ptsJ1 += ptsAbonados;
+                    else estadoJuego.ptsJ2 += ptsAbonados;
+                    
+                    const emisorEsYo = (soyJ1 && emisor === 'J1') || (!soyJ1 && emisor === 'J2');
+                    estadoJuego.mensajeEstado = `No se quiso el ${tipo}. Punto(s) para ${emisorEsYo ? 'YO' : 'ÉL'}. Repartiendo...`;
+                    await enviarAccionSupabase('ACTUALIZAR_ESTADO', estadoJuego);
+                    setTimeout(() => { if (soyJ1) repartirNuevaMano(); }, 2500);
+                    return;
+                }
+            } else if (tipo.includes('Envido') || tipo.includes('Real') || tipo.includes('Falta')) {
+                estadoJuego.envidoCantado = true;
+                if (acepta) {
+                    const env1 = calcularEnvido(estadoJuego.cartasJ1);
+                    const env2 = calcularEnvido(estadoJuego.cartasJ2);
+                    const ptsGanados = estadoJuego.puntosEnvidoEnJuego;
+
+                    if (env1 > env2) {
+                        estadoJuego.ptsJ1 += ptsGanados;
+                        estadoJuego.mensajeEstado = `¡Tantos Queridos! J1 muestra ${env1} pts vs J2 muestra ${env2} pts. ¡+${ptsGanados} pts para J1!`;
+                    } else if (env2 > env1) {
+                        estadoJuego.ptsJ2 += ptsGanados;
+                        estadoJuego.mensajeEstado = `¡Tantos Queridos! J2 muestra ${env2} pts vs J1 muestra ${env1} pts. ¡+${ptsGanados} pts para J2!`;
+                    } else {
+                        if (estadoJuego.manoJugador === 'J1') {
+                            estadoJuego.ptsJ1 += ptsGanados;
+                            estadoJuego.mensajeEstado = `¡Tantos Queridos! Empate en ${env1}. Gana J1 por Mano (+${ptsGanados} pts).`;
+                        } else {
+                            estadoJuego.ptsJ2 += ptsGanados;
+                            estadoJuego.mensajeEstado = `¡Tantos Queridos! Empate en ${env2}. Gana J2 por Mano (+${ptsGanados} pts).`;
+                        }
+                    }
+                } else {
+                    const ptsRechazo = estadoJuego.puntosEnvidoRechazo;
+                    if (emisor === 'J1') estadoJuego.ptsJ1 += ptsRechazo;
+                    else estadoJuego.ptsJ2 += ptsRechazo;
+                    
+                    const emisorEsYo = (soyJ1 && emisor === 'J1') || (!soyJ1 && emisor === 'J2');
+                    estadoJuego.mensajeEstado = `No se quiso el ${tipo}. +${ptsRechazo} pt(s) para ${emisorEsYo ? 'YO' : 'ÉL'}.`;
+                }
+            }
+
+            await enviarAccionSupabase('ACTUALIZAR_ESTADO', estadoJuego);
+        };
+
+        function calcularEnvido(cartas) {
+            let max = 0;
+            const palos = { E: [], B: [], C: [], O: [] };
+            cartas.forEach(c => palos[c.palo].push(c.envido));
+
+            for (let p in palos) {
+                const vals = palos[p];
+                if (vals.length >= 2) {
+                    vals.sort((a, b) => b - a);
+                    const suma = 20 + vals[0] + vals[1];
+                    if (suma > max) max = suma;
+                } else if (vals.length === 1 && vals[0] > max) {
+                    max = vals[0];
+                }
+            }
+            return max;
+        }
+
+        window.cancelarSala = async function() {
+            if (canal) supabaseClient.removeChannel(canal);
+            if (salaId) {
+                await supabaseClient.from('salas').delete().eq('id', salaId);
+            }
+            document.getElementById('panel-juego').classList.add('hidden');
+            document.getElementById('menu-salas').classList.remove('hidden');
+            window.cargarLobbySalas();
+        };
+    </script>
+</body>
+</html>
