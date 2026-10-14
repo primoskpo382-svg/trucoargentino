@@ -19,14 +19,115 @@
 </head>
 <body class="bg-slate-950 text-white min-h-screen flex flex-col items-center justify-center p-3 select-none">
 
-    <div class="bg-slate-900/90 p-5 rounded-3xl shadow-2xl w-full max-w-lg text-center border border-slate-800 backdrop-blur-md">
+    <!-- MODAL DE AUTENTICACIÓN OBLIGATORIA (LOGIN / REGISTRO) -->
+    <div id="modal-auth" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl w-full max-w-md p-6 sm:p-8 space-y-6 text-white">
+            
+            <div class="text-center space-y-2">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-500/10 text-amber-400 text-3xl mb-1 border border-amber-500/20">
+                    🃏
+                </div>
+                <h1 class="text-2xl font-black tracking-wider uppercase text-amber-400">Truco Argentino</h1>
+                <p id="auth-subtitle" class="text-xs text-slate-400">
+                    Es obligatorio iniciar sesión o registrarte para jugar
+                </p>
+            </div>
+
+            <!-- Pestañas -->
+            <div class="flex border-b border-slate-800 text-sm font-semibold">
+                <button id="tab-login" onclick="cambiarModoAuth('login')" class="flex-1 py-2.5 text-center border-b-2 border-amber-500 text-amber-400 focus:outline-none transition">
+                    Iniciar Sesión
+                </button>
+                <button id="tab-register" onclick="cambiarModoAuth('register')" class="flex-1 py-2.5 text-center border-b-2 border-transparent text-slate-400 hover:text-white focus:outline-none transition">
+                    Crear Cuenta
+                </button>
+            </div>
+
+            <!-- Botón Google OAuth -->
+            <button onclick="iniciarConGoogle()" class="w-full flex items-center justify-center gap-3 bg-white hover:bg-slate-100 text-slate-900 font-bold py-3 px-4 rounded-xl shadow transition cursor-pointer">
+                <svg class="w-5 h-5" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                </svg>
+                Continuar con Google
+            </button>
+
+            <div class="relative flex items-center justify-center">
+                <div class="border-t border-slate-800 w-full"></div>
+                <span class="bg-slate-900 px-3 text-xs text-slate-500 uppercase absolute">o con email</span>
+            </div>
+
+            <!-- Alertas de Auth -->
+            <div id="auth-alert" class="hidden text-xs p-3 rounded-xl text-center"></div>
+
+            <!-- Formulario Email / Password -->
+            <form onsubmit="procesarAuth(event)" class="space-y-4 text-left">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1">Correo electrónico</label>
+                    <input type="email" id="user-email" required placeholder="tu@email.com" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1">Contraseña</label>
+                    <input type="password" id="user-password" required placeholder="••••••••" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500">
+                </div>
+                <button type="submit" id="btn-action" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-3 px-4 rounded-xl shadow transition cursor-pointer">
+                    Iniciar Sesión
+                </button>
+            </form>
+
+        </div>
+    </div>
+
+    <!-- CARTEL DE GANADOR / FIN DE PARTIDA -->
+    <div id="modal-fin-partida" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border-2 border-amber-500/80 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center space-y-4 shadow-2xl animate-bounce">
+            <div class="text-5xl">🏆</div>
+            <h2 id="fin-titulo" class="text-2xl font-black text-amber-400 uppercase tracking-wider">¡Partida Finalizada!</h2>
+            <p id="fin-mensaje" class="text-sm text-slate-300 font-semibold"></p>
+            <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800">
+                <div class="text-xs text-slate-400 uppercase font-bold">Ganancia Neta (Comisión 2% cobrada)</div>
+                <div id="fin-ganancia" class="text-2xl font-black text-emerald-400 mt-1">+0 Fichas</div>
+            </div>
+            <button onclick="cerrarFinPartida()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-3 rounded-xl transition cursor-pointer">
+                Volver al Lobby
+            </button>
+        </div>
+    </div>
+
+    <!-- BARRA SUPERIOR DE FICHAS Y BILLETERA -->
+    <div class="absolute top-3 w-full max-w-lg px-3">
+        <div class="bg-slate-900 border border-slate-800 p-2.5 rounded-2xl flex justify-between items-center shadow-lg">
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-slate-400 font-bold uppercase">Fichas:</span>
+                <span id="saldoFichas" class="text-lg font-black text-amber-400">0</span>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="toggleModal('modalComprar')" class="bg-blue-600 hover:bg-blue-500 text-xs font-bold px-3 py-1.5 rounded-xl transition cursor-pointer shadow">💳 Comprar</button>
+                <button onclick="toggleModal('modalRetirar')" class="bg-rose-700 hover:bg-rose-600 text-xs font-bold px-3 py-1.5 rounded-xl transition cursor-pointer shadow">📤 Retirar</button>
+                <button onclick="cerrarSesion()" class="bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-xs font-bold px-3 py-1.5 rounded-xl transition cursor-pointer">Cerrar Sesión</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-slate-900/90 p-5 rounded-3xl shadow-2xl w-full max-w-lg text-center border border-slate-800 backdrop-blur-md mt-12">
         <h1 class="text-3xl font-black text-amber-400 mb-4 tracking-wider uppercase drop-shadow-md">♠️ Truco Argentino ⚔️</h1>
 
         <!-- Menú / Lobby Principal -->
         <div id="menu-salas" class="space-y-4 my-4">
-            <button onclick="window.crearSala()" class="w-full bg-emerald-600 hover:bg-emerald-500 font-extrabold text-lg py-3.5 px-6 rounded-2xl transition shadow-lg hover:shadow-emerald-900/50 cursor-pointer border border-emerald-400/30">
-                ➕ Crear Nueva Sala
-            </button>
+            
+            <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
+                <div class="text-left">
+                    <label class="text-xs font-bold text-slate-400">Seleccioná el valor de la apuesta (Fichas):</label>
+                    <select id="select-apuesta" class="w-full mt-1.5 p-3 bg-slate-900 border border-slate-700 rounded-xl text-amber-400 font-black text-sm focus:outline-none focus:border-amber-500">
+                        <!-- Opciones dinámicas -->
+                    </select>
+                </div>
+                <button onclick="window.crearSala()" class="w-full bg-emerald-600 hover:bg-emerald-500 font-extrabold text-lg py-3.5 px-6 rounded-2xl transition shadow-lg hover:shadow-emerald-900/50 cursor-pointer border border-emerald-400/30">
+                    ➕ Crear Nueva Sala
+                </button>
+            </div>
 
             <div class="border-t border-slate-800 pt-3 text-left">
                 <div class="flex justify-between items-center mb-2 px-1">
@@ -47,7 +148,7 @@
             <!-- Encabezado de Estado -->
             <div class="flex justify-between items-center text-xs text-slate-400 font-mono border-b border-slate-800 pb-2 px-1">
                 <span id="sala-info" class="bg-slate-800 px-2 py-1 rounded-md">Sala: -</span>
-                <span id="rol-info" class="text-emerald-400 font-bold">Rol: -</span>
+                <span id="apuesta-info" class="text-amber-400 font-bold">Apuesta: -</span>
                 <span id="turno-info" class="text-amber-400 font-bold bg-amber-950/40 px-2.5 py-1 rounded-md border border-amber-500/30">Turno: -</span>
             </div>
 
@@ -126,27 +227,67 @@
                 </div>
             </div>
 
-            <button onclick="window.cancelarSala()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-xs py-2.5 px-4 rounded-xl transition cursor-pointer">
+            <button onclick="window.cancelarSala(true)" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-xs py-2.5 px-4 rounded-xl transition cursor-pointer">
                 Salir de la Partida
             </button>
         </div>
 
     </div>
 
+    <!-- MODAL COMPRAR FICHAS (MERCADO PAGO) -->
+    <div id="modalComprar" class="fixed inset-0 bg-black/80 flex items-center justify-center hidden p-4 z-50">
+        <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl w-full max-w-sm text-center relative shadow-2xl">
+            <h2 class="text-lg font-black text-amber-400 mb-2">Comprar Fichas</h2>
+            <p class="text-xs text-slate-400 mb-4">1 Ficha = $1 ARS</p>
+            <div class="mb-4 text-left">
+                <label class="text-xs text-slate-300 font-bold">Cantidad de Fichas</label>
+                <input type="number" id="cantidadComprar" min="100" value="500" class="w-full mt-1 p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm">
+            </div>
+            <button onclick="comprarFichasMP()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl text-sm transition cursor-pointer mb-2">Pagar con Mercado Pago</button>
+            <button onclick="toggleModal('modalComprar')" class="text-xs text-slate-500 hover:text-white">Cerrar</button>
+            <div id="msgComprar" class="text-xs mt-2"></div>
+        </div>
+    </div>
+
+    <!-- MODAL RETIRAR FICHAS -->
+    <div id="modalRetirar" class="fixed inset-0 bg-black/80 flex items-center justify-center hidden p-4 z-50">
+        <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl w-full max-w-sm text-center relative shadow-2xl">
+            <h2 class="text-lg font-black text-rose-400 mb-2">Solicitar Retiro</h2>
+            <p class="text-xs text-slate-400 mb-4">Envía tus fichas a tu cuenta</p>
+            <div class="space-y-3 mb-4 text-left">
+                <div>
+                    <label class="text-xs text-slate-300 font-bold">Fichas a retirar</label>
+                    <input type="number" id="cantidadRetirar" min="100" placeholder="Ej: 500" class="w-full mt-1 p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-300 font-bold">Alias o CBU</label>
+                    <input type="text" id="aliasCbu" placeholder="tu.alias.mp" class="w-full mt-1 p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm">
+                </div>
+            </div>
+            <button onclick="solicitarRetiroFichas()" class="w-full bg-rose-700 hover:bg-rose-600 text-white font-bold py-2.5 rounded-xl text-sm transition cursor-pointer mb-2">Solicitar Retiro</button>
+            <button onclick="toggleModal('modalRetirar')" class="text-xs text-slate-500 hover:text-white">Cerrar</button>
+            <div id="msgRetirar" class="text-xs mt-2"></div>
+        </div>
+    </div>
+
     <script>
         const SUPABASE_URL = 'https://olvieohhsybycmyojdpo.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_sBg5zRa3r3FS1pJGC5IwNg_Ca4Gy5An';
-
+        const API_URL = 'http://localhost:3000/api';
+        
+        let usuarioId = null;
+        let saldoFichasActual = 0;
         let supabaseClient = null;
         let salaId = null;
         let soyJ1 = false;
         let canal = null;
         let canalLobby = null;
+        let modoAuth = 'login';
+        let apuestaSalaActual = 100;
 
         const PALOS_ICONOS = { E: '⚔️', B: '🪵', C: '🏆', O: '🪙' };
         const PALOS_COLORES = { E: 'text-blue-400 border-blue-500/40', B: 'text-emerald-400 border-emerald-500/40', C: 'text-rose-400 border-rose-500/40', O: 'text-amber-400 border-amber-500/40' };
 
-        // Mapeo de URLs para el palo de Espadas
         const IMAGENES_ESPADAS = {
             '1E': 'https://www.tarotamigo.com/wp-content/uploads/2025/04/carta-as-espadas-derecho.jpg',
             '2E': 'https://www.tarotamigo.com/wp-content/uploads/2025/03/carta-dos-espadas.jpg',
@@ -230,17 +371,221 @@
             mensajeEstado: 'Esperando conexiones...'
         };
 
-        window.onload = () => {
+        window.onload = async () => {
+            poblarSelectApuestas();
+            if (supabaseClient) {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                const modalAuth = document.getElementById('modal-auth');
+                if (session) {
+                    modalAuth.classList.add('hidden');
+                    usuarioId = session.user.id;
+                    await cargarSaldoUsuario();
+                } else {
+                    modalAuth.classList.remove('hidden');
+                }
+            }
             window.cargarLobbySalas();
             escucharLobbyRealtime();
         };
+
+        function poblarSelectApuestas() {
+            const select = document.getElementById('select-apuesta');
+            select.innerHTML = '';
+            
+            // 100 a 2000 (paso 100)
+            for (let v = 100; v <= 2000; v += 100) {
+                const opt = document.createElement('option');
+                opt.value = v;
+                opt.innerText = `${v} Fichas`;
+                select.appendChild(opt);
+            }
+            // 2500 a 10000 (paso 500)
+            for (let v = 2500; v <= 10000; v += 500) {
+                const opt = document.createElement('option');
+                opt.value = v;
+                opt.innerText = `${v} Fichas`;
+                select.appendChild(opt);
+            }
+        }
+
+        async function cargarSaldoUsuario() {
+            if (!supabaseClient || !usuarioId) return;
+            const { data, error } = await supabaseClient
+                .from('usuarios')
+                .select('fichas')
+                .eq('id', usuarioId)
+                .single();
+
+            if (data) {
+                saldoFichasActual = data.fichas;
+            } else {
+                // Cuenta nueva: 0 monedas por defecto
+                saldoFichasActual = 0;
+                await supabaseClient.from('usuarios').insert([{ id: usuarioId, fichas: 0 }]);
+            }
+            document.getElementById('saldoFichas').innerText = saldoFichasActual;
+        }
+
+        async function actualizarSaldoBD(nuevoSaldo) {
+            saldoFichasActual = Math.max(0, nuevoSaldo);
+            document.getElementById('saldoFichas').innerText = saldoFichasActual;
+            if (supabaseClient && usuarioId) {
+                await supabaseClient.from('usuarios').update({ fichas: saldoFichasActual }).eq('id', usuarioId);
+            }
+        }
+
+        function cambiarModoAuth(modo) {
+            modoAuth = modo;
+            const tabLogin = document.getElementById('tab-login');
+            const tabRegister = document.getElementById('tab-register');
+            const btnAction = document.getElementById('btn-action');
+            const authSubtitle = document.getElementById('auth-subtitle');
+            const authAlert = document.getElementById('auth-alert');
+
+            authAlert.classList.add('hidden');
+
+            if (modo === 'login') {
+                tabLogin.className = "flex-1 py-2.5 text-center border-b-2 border-amber-500 text-amber-400 focus:outline-none transition";
+                tabRegister.className = "flex-1 py-2.5 text-center border-b-2 border-transparent text-slate-400 hover:text-white focus:outline-none transition";
+                btnAction.innerText = "Iniciar Sesión";
+                authSubtitle.innerText = "Iniciá sesión para acceder a las salas";
+            } else {
+                tabRegister.className = "flex-1 py-2.5 text-center border-b-2 border-amber-500 text-amber-400 focus:outline-none transition";
+                tabLogin.className = "flex-1 py-2.5 text-center border-b-2 border-transparent text-slate-400 hover:text-white focus:outline-none transition";
+                btnAction.innerText = "Crear Cuenta";
+                authSubtitle.innerText = "Registrate para guardar tus fichas y estadísticas";
+            }
+        }
+
+        async function iniciarConGoogle() {
+            try {
+                const { error } = await supabaseClient.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: {
+                        redirectTo: window.location.origin + window.location.pathname
+                    }
+                });
+                if (error) throw error;
+            } catch (err) {
+                mostrarAlertaAuth(err.message, true);
+            }
+        }
+
+        async function procesarAuth(e) {
+            e.preventDefault();
+            const email = document.getElementById('user-email').value;
+            const password = document.getElementById('user-password').value;
+
+            if (modoAuth === 'login') {
+                const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                if (error) {
+                    mostrarAlertaAuth(error.message, true);
+                } else {
+                    mostrarAlertaAuth("¡Sesión iniciada con éxito! Entrando...", false);
+                    setTimeout(() => location.reload(), 1000);
+                }
+            } else {
+                const { data, error } = await supabaseClient.auth.signUp({ email, password });
+                if (error) {
+                    mostrarAlertaAuth(error.message, true);
+                } else {
+                    mostrarAlertaAuth("¡Cuenta creada con éxito! Ya podés iniciar sesión.", false);
+                }
+            }
+        }
+
+        async function cerrarSesion() {
+            if (supabaseClient) {
+                await supabaseClient.auth.signOut();
+            }
+            location.reload();
+        }
+
+        function mostrarAlertaAuth(texto, esError) {
+            const alertDiv = document.getElementById('auth-alert');
+            alertDiv.innerText = texto;
+            alertDiv.className = esError 
+                ? "text-xs p-3 rounded-xl text-center bg-rose-500/10 text-rose-400 border border-rose-500/20" 
+                : "text-xs p-3 rounded-xl text-center bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+            alertDiv.classList.remove('hidden');
+        }
+
+        function toggleModal(id) {
+            document.getElementById(id).classList.toggle('hidden');
+        }
+
+        async function comprarFichasMP() {
+            const cantidad = document.getElementById('cantidadComprar').value;
+            const msg = document.getElementById('msgComprar');
+            if (!cantidad || cantidad <= 0) {
+                msg.className = 'text-xs mt-2 text-rose-400';
+                msg.innerText = 'Ingresá un monto válido.';
+                return;
+            }
+            msg.className = 'text-xs mt-2 text-amber-300';
+            msg.innerText = 'Generando link de pago...';
+
+            try {
+                const response = await fetch(`${API_URL}/crear-preferencia`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ precio: Number(cantidad), cantidad: 1, usuarioId: usuarioId })
+                });
+                const data = await response.json();
+                if (data.init_point) {
+                    window.location.href = data.init_point;
+                } else {
+                    throw new Error('No se pudo generar preferencia.');
+                }
+            } catch (err) {
+                msg.className = 'text-xs mt-2 text-rose-400';
+                msg.innerText = 'Error al conectar con el servidor.';
+            }
+        }
+
+        async function solicitarRetiroFichas() {
+            const fichas = document.getElementById('cantidadRetirar').value;
+            const alias = document.getElementById('aliasCbu').value;
+            const msg = document.getElementById('msgRetirar');
+            if (!fichas || fichas <= 0 || !alias.trim()) {
+                msg.className = 'text-xs mt-2 text-rose-400';
+                msg.innerText = 'Completá todos los campos.';
+                return;
+            }
+            if (Number(fichas) > saldoFichasActual) {
+                msg.className = 'text-xs mt-2 text-rose-400';
+                msg.innerText = 'No tenés suficiente saldo.';
+                return;
+            }
+            msg.className = 'text-xs mt-2 text-amber-300';
+            msg.innerText = 'Enviando solicitud...';
+
+            try {
+                const response = await fetch(`${API_URL}/solicitar-retiro`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ usuarioId: usuarioId, fichasARetirar: Number(fichas), aliasCbu: alias })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    msg.className = 'text-xs mt-2 text-emerald-400';
+                    msg.innerText = data.mensaje || '¡Retiro solicitado con éxito!';
+                    await actualizarSaldoBD(saldoFichasActual - Number(fichas));
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (err) {
+                msg.className = 'text-xs mt-2 text-rose-400';
+                msg.innerText = 'Error al procesar retiro.';
+            }
+        }
 
         window.cargarLobbySalas = async function() {
             if (!supabaseClient) return;
 
             const { data, error } = await supabaseClient
                 .from('salas')
-                .select('id, estado')
+                .select('id, estado, apuesta')
                 .eq('estado', 'ESPERANDO_J2');
 
             const contenedor = document.getElementById('lista-salas');
@@ -256,10 +601,10 @@
                 item.className = "bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 p-2.5 rounded-xl flex justify-between items-center transition shadow-sm";
                 item.innerHTML = `
                     <div class="text-left">
-                        <div class="text-xs font-black text-amber-300">Mesa #${s.id}</div>
+                        <div class="text-xs font-black text-amber-300">Mesa #${s.id} <span class="text-emerald-400 ml-1">($${s.apuesta || 100})</span></div>
                         <div class="text-[10px] text-emerald-400 font-bold">● Esperando rival</div>
                     </div>
-                    <button onclick="window.unirseADeterminadaSala(${s.id})" class="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs py-1.5 px-3.5 rounded-lg transition cursor-pointer shadow">
+                    <button onclick="window.unirseADeterminadaSala(${s.id}, ${s.apuesta || 100})" class="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs py-1.5 px-3.5 rounded-lg transition cursor-pointer shadow">
                         Unirse
                     </button>
                 `;
@@ -280,34 +625,48 @@
 
         window.crearSala = async function() {
             if (!supabaseClient) return;
+            const montoApuesta = Number(document.getElementById('select-apuesta').value);
+
+            if (saldoFichasActual < montoApuesta) {
+                alert(`No tenés suficiente saldo. Necesitás ${montoApuesta} fichas para crear esta sala.`);
+                return;
+            }
+
             const idGen = Math.floor(Math.random() * 89999) + 10000;
 
             const { data, error } = await supabaseClient
                 .from('salas')
-                .insert([{ id: idGen, estado: 'ESPERANDO_J2', jugador1: 'J1_CONECTADO' }])
+                .insert([{ id: idGen, estado: 'ESPERANDO_J2', jugador1: 'J1_CONECTADO', apuesta: montoApuesta }])
                 .select().single();
 
             if (error) { alert("Error al crear sala: " + error.message); return; }
 
             salaId = data.id;
             soyJ1 = true;
+            apuestaSalaActual = montoApuesta;
 
             document.getElementById('menu-salas').classList.add('hidden');
             document.getElementById('panel-juego').classList.remove('hidden');
             document.getElementById('sala-info').innerText = `Mesa: #${salaId}`;
-            document.getElementById('rol-info').innerText = `Rol: Creador`;
+            document.getElementById('apuesta-info').innerText = `Apuesta: $${apuestaSalaActual}`;
 
             escucharCanalRealtime();
         };
 
-        window.unirseADeterminadaSala = async function(idElegida) {
+        window.unirseADeterminadaSala = async function(idElegida, montoApuesta) {
+            if (saldoFichasActual < montoApuesta) {
+                alert(`No tenés suficiente saldo. Necesitás ${montoApuesta} fichas para unirte a esta sala.`);
+                return;
+            }
+
             salaId = idElegida;
             soyJ1 = false;
+            apuestaSalaActual = montoApuesta;
 
             document.getElementById('menu-salas').classList.add('hidden');
             document.getElementById('panel-juego').classList.remove('hidden');
             document.getElementById('sala-info').innerText = `Mesa: #${salaId}`;
-            document.getElementById('rol-info').innerText = `Rol: Rival`;
+            document.getElementById('apuesta-info').innerText = `Apuesta: $${apuestaSalaActual}`;
 
             escucharCanalRealtime();
             await enviarAccionSupabase('J2_UNIDO', {});
@@ -358,10 +717,20 @@
                             procesarAccionRed(paquete.tipo, paquete.data);
                         } catch(e) {}
                     }
-                ).subscribe();
+                )
+                .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'salas', filter: 'id=eq.' + salaId }, () => {
+                    // Si la sala fue borrada por abandono del rival
+                    procesarAbandonoRival();
+                })
+                .subscribe();
         }
 
         function procesarAccionRed(tipo, data) {
+            if (tipo === 'ABANDONO') {
+                procesarAbandonoRival();
+                return;
+            }
+
             if (tipo === 'J2_UNIDO' && soyJ1) {
                 repartirNuevaMano('J1');
                 return;
@@ -371,6 +740,21 @@
                 estadoJuego = data;
                 actualizarInterfaz();
             }
+        }
+
+        function procesarAbandonoRival() {
+            if (!salaId) return;
+            const pozoTotal = apuestaSalaActual * 2;
+            const gananciaNeta = pozoTotal * 0.98; // Descuento del 2% de comisión
+
+            actualizarSaldoBD(saldoFichasActual + (gananciaNeta - apuestaSalaActual));
+
+            document.getElementById('fin-titulo').innerText = "¡Victoria por Abandono!";
+            document.getElementById('fin-mensaje').innerText = "Tu rival abandonó la partida. ¡Te quedás con las fichas!";
+            document.getElementById('fin-ganancia').innerText = `+${Math.floor(gananciaNeta - apuestaSalaActual)} Fichas`;
+            document.getElementById('modal-fin-partida').classList.remove('hidden');
+
+            limpiarEstadoJuego();
         }
 
         function renderizarCartaHTML(cartaObj) {
@@ -385,8 +769,17 @@
             const miRol = soyJ1 ? 'J1' : 'J2';
             const rivalRol = soyJ1 ? 'J2' : 'J1';
 
-            document.getElementById('pts-yo').innerText = soyJ1 ? estadoJuego.ptsJ1 : estadoJuego.ptsJ2;
-            document.getElementById('pts-el').innerText = soyJ1 ? estadoJuego.ptsJ2 : estadoJuego.ptsJ1;
+            const misPts = soyJ1 ? estadoJuego.ptsJ1 : estadoJuego.ptsJ2;
+            const rivalPts = soyJ1 ? estadoJuego.ptsJ2 : estadoJuego.ptsJ1;
+
+            document.getElementById('pts-yo').innerText = misPts;
+            document.getElementById('pts-el').innerText = rivalPts;
+
+            // Verificar si alguien llegó a 15 o 30 puntos para finalizar partida
+            if (misPts >= 30 || rivalPts >= 30) {
+                evaluarFinDePartida(misPts >= 30);
+                return;
+            }
 
             const miTurno = estadoJuego.turnoActual === miRol;
             
@@ -424,8 +817,9 @@
                 contenedor.appendChild(btn);
             });
 
+            // REGLA: Bloquear botón de Truco si NO es tu turno de jugar
             const btnTruco = document.getElementById('btn-truco');
-            if (estadoJuego.ultimoQueCantoTruco === miRol || estadoJuego.nivelTruco >= 4) {
+            if (!miTurno || estadoJuego.ultimoQueCantoTruco === miRol || estadoJuego.nivelTruco >= 4) {
                 btnTruco.classList.add('hidden');
             } else {
                 btnTruco.classList.remove('hidden');
@@ -439,7 +833,7 @@
             const cartaPieMesa = estadoJuego.mesaR1[estadoJuego.manoJugador === 'J1' ? 'J2' : 'J1'];
 
             let puedeCantarEnvido = false;
-            if (estadoJuego.rondaActual === 1 && !estadoJuego.envidoCantado) {
+            if (estadoJuego.rondaActual === 1 && !estadoJuego.envidoCantado && miTurno) {
                 if (!cartaManoMesa && estadoJuego.manoJugador === miRol) {
                     puedeCantarEnvido = true;
                 } else if (cartaManoMesa && !cartaPieMesa && estadoJuego.manoJugador !== miRol) {
@@ -478,6 +872,33 @@
                 document.getElementById('panel-respuesta').classList.add('hidden');
                 document.getElementById('estado-mensaje').innerText = estadoJuego.mensajeEstado || (miTurno ? '¡Es tu turno de jugar o cantar!' : 'Esperando jugada de él...');
             }
+        }
+
+        function evaluarFinDePartida(ganeYo) {
+            const pozoTotal = apuestaSalaActual * 2;
+            const gananciaNetoPura = Math.floor(pozoTotal * 0.98); // 2% deducción
+
+            if (ganeYo) {
+                actualizarSaldoBD(saldoFichasActual + (gananciaNetoPura - apuestaSalaActual));
+                document.getElementById('fin-titulo').innerText = "¡Ganaste la Partida!";
+                document.getElementById('fin-mensaje').innerText = "Felicitaciones, alcanzaste el puntaje máximo.";
+                document.getElementById('fin-ganancia').innerText = `+${gananciaNetoPura - apuestaSalaActual} Fichas`;
+            } else {
+                actualizarSaldoBD(saldoFichasActual - apuestaSalaActual);
+                document.getElementById('fin-titulo').innerText = "Perdiste la Partida";
+                document.getElementById('fin-mensaje').innerText = "Tu rival alcanzó el puntaje máximo.";
+                document.getElementById('fin-ganancia').innerText = `-${apuestaSalaActual} Fichas`;
+            }
+
+            document.getElementById('modal-fin-partida').classList.remove('hidden');
+            limpiarEstadoJuego();
+        }
+
+        function cerrarFinPartida() {
+            document.getElementById('modal-fin-partida').classList.add('hidden');
+            document.getElementById('panel-juego').classList.add('hidden');
+            document.getElementById('menu-salas').classList.remove('hidden');
+            window.cargarLobbySalas();
         }
 
         async function tirarcarta(carta) {
@@ -598,7 +1019,7 @@
                 else if (cadena === 'Envido + Envido + Real Envido') { ptsQuiero = 7; ptsNoQuiero = 4; }
                 else if (tipo === 'Falta Envido') {
                     const maxPts = Math.max(estadoJuego.ptsJ1, estadoJuego.ptsJ2);
-                    ptsQuiero = Math.max(1, 15 - maxPts); 
+                    ptsQuiero = Math.max(1, 30 - maxPts); 
                     ptsNoQuiero = estadoJuego.puntosEnvidoEnJuego || 1;
                 }
 
@@ -689,15 +1110,24 @@
             return max;
         }
 
-        window.cancelarSala = async function() {
-            if (canal) supabaseClient.removeChannel(canal);
+        window.cancelarSala = async function(esAbandonoVoluntario = false) {
             if (salaId) {
+                if (esAbandonoVoluntario) {
+                    await enviarAccionSupabase('ABANDONO', {});
+                }
                 await supabaseClient.from('salas').delete().eq('id', salaId);
             }
+            limpiarEstadoJuego();
             document.getElementById('panel-juego').classList.add('hidden');
             document.getElementById('menu-salas').classList.remove('hidden');
             window.cargarLobbySalas();
         };
+
+        function limpiarEstadoJuego() {
+            if (canal) supabaseClient.removeChannel(canal);
+            salaId = null;
+            soyJ1 = false;
+        }
     </script>
 </body>
 </html>
