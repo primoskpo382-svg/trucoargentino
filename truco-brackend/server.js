@@ -3,86 +3,59 @@ const cors = require('cors');
 const { MercadoPagoConfig, Preference } = require('mercadopago');
 
 const app = express();
+const PORT = process.env.PORT || 3000;
 
-// Habilitar CORS para permitir solicitudes desde cualquier frontend (Netlify, etc.)
-app.use(cors({ origin: '*' }));
+// Configurar CORS y parseo de JSON
+app.use(cors());
 app.use(express.json());
 
-// Configurar Mercado Pago utilizando la variable de entorno de Render (MP_ACCESS_TOKEN)
+// Configurar Mercado Pago con tu Access Token
+// (Asegurate de agregar MERCADOPAGO_ACCESS_TOKEN en las Variables de Entorno de Render)
 const client = new MercadoPagoConfig({ 
-    accessKey: process.env.MP_ACCESS_TOKEN || 'TU_ACCESS_TOKEN_DE_PRUEBA_LOCAL' 
+    accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN || 'TU_ACCESS_TOKEN_AQUI' 
 });
 
-// Ruta raíz de prueba para verificar que el servidor está online
+// Ruta de prueba para verificar que el backend funciona
 app.get('/', (req, res) => {
-    res.send('¡Servidor Backend de Truco Argentino funcionando con éxito!');
+    res.send('Servidor del Truco funcionando correctamente.');
 });
 
-// Endpoint para crear la preferencia de pago para comprar fichas
-app.post('/api/crear-preferencia', async (req, res) => {
+// Ruta para crear la preferencia de pago en Mercado Pago
+app.post('/crear-preferencia', async (req, res) => {
     try {
-        const { precio, cantidad, usuarioId } = req.body;
-
-        if (!precio || precio <= 0) {
-            return res.status(400).json({ error: 'Precio inválido' });
-        }
+        const { cantidad } = req.body;
+        const monto = Number(cantidad) || 500;
 
         const preference = new Preference(client);
 
-        const resultado = await preference.create({
+        const result = await preference.create({
             body: {
                 items: [
                     {
-                        title: `${cantidad || 1} Fichas de Truco Argentino`,
-                        quantity: Number(cantidad || 1),
-                        unit_price: Number(precio),
+                        title: 'Fichas Truco Argentino',
+                        quantity: 1,
+                        unit_price: monto,
                         currency_id: 'ARS'
                     }
                 ],
                 back_urls: {
-                    success: 'https://app.netlify.com', // O la URL definitiva de tu web en Netlify
-                    failure: 'https://app.netlify.com',
-                    pending: 'https://app.netlify.com'
+                    success: 'https://tu-frontend.netlify.app',
+                    failure: 'https://tu-frontend.netlify.app',
+                    pending: 'https://tu-frontend.netlify.app'
                 },
-                auto_return: 'approved',
-                external_reference: usuarioId || 'demo_user'
+                auto_return: 'approved'
             }
         });
 
-        // Retornamos el link de pago (init_point) hacia el cliente
-        res.json({ init_point: resultado.init_point });
-
+        // Devolver el link de pago (init_point) al frontend
+        res.json({ init_point: result.init_point });
     } catch (error) {
-        console.error('Error al crear preferencia de Mercado Pago:', error);
-        res.status(500).json({ error: error.message || 'Error interno del servidor' });
+        console.error('Error al crear la preferencia de Mercado Pago:', error);
+        res.status(500).json({ error: 'No se pudo generar la preferencia de pago.' });
     }
 });
 
-// Endpoint para procesar solicitudes de retiro de fichas
-app.post('/api/solicitar-retiro', async (req, res) => {
-    try {
-        const { usuarioId, fichasARetirar, aliasCbu } = req.body;
-
-        if (!fichasARetirar || !aliasCbu) {
-            return res.status(400).json({ error: 'Faltan datos para procesar el retiro' });
-        }
-
-        // Aquí puedes registrar la solicitud en tu base de datos o lógica interna
-        console.log(`Solicitud de retiro de ${fichasARetirar} fichas para usuario ${usuarioId} a la cuenta/alias: ${aliasCbu}`);
-
-        res.json({ 
-            exito: true, 
-            mensaje: '¡Solicitud de retiro enviada con éxito! Se procesará en las próximas 24 horas.' 
-        });
-
-    } catch (error) {
-        console.error('Error al solicitar retiro:', error);
-        res.status(500).json({ error: 'Error al procesar el retiro' });
-    }
-});
-
-// Render asigna un puerto automático mediante process.env.PORT
-const PORT = process.env.PORT || 3000;
+// Iniciar el servidor
 app.listen(PORT, () => {
-    console.log(`Servidor de Truco corriendo en el puerto ${PORT}`);
+    console.log(`Servidor corriendo en el puerto ${PORT}`);
 });
