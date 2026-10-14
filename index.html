@@ -80,12 +80,28 @@
         </div>
     </div>
 
+    <!-- CARTEL DE GANADOR / FIN DE PARTIDA -->
+    <div id="modal-fin-partida" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border-2 border-amber-500/80 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center space-y-4 shadow-2xl animate-bounce">
+            <div class="text-5xl">🏆</div>
+            <h2 id="fin-titulo" class="text-2xl font-black text-amber-400 uppercase tracking-wider">¡Partida Finalizada!</h2>
+            <p id="fin-mensaje" class="text-sm text-slate-300 font-semibold"></p>
+            <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800">
+                <div class="text-xs text-slate-400 uppercase font-bold">Ganancia Neta (Comisión 2% cobrada)</div>
+                <div id="fin-ganancia" class="text-2xl font-black text-emerald-400 mt-1">+0 Fichas</div>
+            </div>
+            <button onclick="cerrarFinPartida()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-3 rounded-xl transition cursor-pointer">
+                Volver al Lobby
+            </button>
+        </div>
+    </div>
+
     <!-- BARRA SUPERIOR DE FICHAS Y BILLETERA -->
     <div class="absolute top-3 w-full max-w-lg px-3">
         <div class="bg-slate-900 border border-slate-800 p-2.5 rounded-2xl flex justify-between items-center shadow-lg">
             <div class="flex items-center gap-2">
                 <span class="text-xs text-slate-400 font-bold uppercase">Fichas:</span>
-                <span id="saldoFichas" class="text-lg font-black text-amber-400">1000</span>
+                <span id="saldoFichas" class="text-lg font-black text-amber-400">0</span>
             </div>
             <div class="flex gap-2">
                 <button onclick="toggleModal('modalComprar')" class="bg-blue-600 hover:bg-blue-500 text-xs font-bold px-3 py-1.5 rounded-xl transition cursor-pointer shadow">💳 Comprar</button>
@@ -100,9 +116,18 @@
 
         <!-- Menú / Lobby Principal -->
         <div id="menu-salas" class="space-y-4 my-4">
-            <button onclick="window.crearSala()" class="w-full bg-emerald-600 hover:bg-emerald-500 font-extrabold text-lg py-3.5 px-6 rounded-2xl transition shadow-lg hover:shadow-emerald-900/50 cursor-pointer border border-emerald-400/30">
-                ➕ Crear Nueva Sala
-            </button>
+            
+            <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
+                <div class="text-left">
+                    <label class="text-xs font-bold text-slate-400">Seleccioná el valor de la apuesta (Fichas):</label>
+                    <select id="select-apuesta" class="w-full mt-1.5 p-3 bg-slate-900 border border-slate-700 rounded-xl text-amber-400 font-black text-sm focus:outline-none focus:border-amber-500">
+                        <!-- Opciones dinámicas -->
+                    </select>
+                </div>
+                <button onclick="window.crearSala()" class="w-full bg-emerald-600 hover:bg-emerald-500 font-extrabold text-lg py-3.5 px-6 rounded-2xl transition shadow-lg hover:shadow-emerald-900/50 cursor-pointer border border-emerald-400/30">
+                    ➕ Crear Nueva Sala
+                </button>
+            </div>
 
             <div class="border-t border-slate-800 pt-3 text-left">
                 <div class="flex justify-between items-center mb-2 px-1">
@@ -123,7 +148,7 @@
             <!-- Encabezado de Estado -->
             <div class="flex justify-between items-center text-xs text-slate-400 font-mono border-b border-slate-800 pb-2 px-1">
                 <span id="sala-info" class="bg-slate-800 px-2 py-1 rounded-md">Sala: -</span>
-                <span id="rol-info" class="text-emerald-400 font-bold">Rol: -</span>
+                <span id="apuesta-info" class="text-amber-400 font-bold">Apuesta: -</span>
                 <span id="turno-info" class="text-amber-400 font-bold bg-amber-950/40 px-2.5 py-1 rounded-md border border-amber-500/30">Turno: -</span>
             </div>
 
@@ -202,7 +227,7 @@
                 </div>
             </div>
 
-            <button onclick="window.cancelarSala()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-xs py-2.5 px-4 rounded-xl transition cursor-pointer">
+            <button onclick="window.cancelarSala(true)" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-xs py-2.5 px-4 rounded-xl transition cursor-pointer">
                 Salir de la Partida
             </button>
         </div>
@@ -210,7 +235,7 @@
     </div>
 
     <!-- MODAL COMPRAR FICHAS (MERCADO PAGO) -->
-    <div id="modalComprar" class="fixed inset-0 bg-black/80 flex items-center justify-center hidden p-4 z-50">
+    <div id="modalComprar" class="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl w-full max-w-sm text-center relative shadow-2xl">
             <h2 class="text-lg font-black text-amber-400 mb-2">Comprar Fichas</h2>
             <p class="text-xs text-slate-400 mb-4">1 Ficha = $1 ARS</p>
@@ -218,7 +243,9 @@
                 <label class="text-xs text-slate-300 font-bold">Cantidad de Fichas</label>
                 <input type="number" id="cantidadComprar" min="100" value="500" class="w-full mt-1 p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm">
             </div>
-            <button onclick="comprarFichasMP()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl text-sm transition cursor-pointer mb-2">Pagar con Mercado Pago</button>
+            <button onclick="comprarFichasMP()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl text-sm transition cursor-pointer mb-2">
+                Pagar con Mercado Pago
+            </button>
             <button onclick="toggleModal('modalComprar')" class="text-xs text-slate-500 hover:text-white">Cerrar</button>
             <div id="msgComprar" class="text-xs mt-2"></div>
         </div>
@@ -248,15 +275,17 @@
     <script>
         const SUPABASE_URL = 'https://olvieohhsybycmyojdpo.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_sBg5zRa3r3FS1pJGC5IwNg_Ca4Gy5An';
-        const API_URL = 'https://truco-brackend.onrender.com/';
+        const API_URL = 'http://localhost:3000/api';
         
-        let usuarioId = 'usuario_demo_123';
+        let usuarioId = null;
+        let saldoFichasActual = 0;
         let supabaseClient = null;
         let salaId = null;
         let soyJ1 = false;
         let canal = null;
         let canalLobby = null;
         let modoAuth = 'login';
+        let apuestaSalaActual = 100;
 
         const PALOS_ICONOS = { E: '⚔️', B: '🪵', C: '🏆', O: '🪙' };
         const PALOS_COLORES = { E: 'text-blue-400 border-blue-500/40', B: 'text-emerald-400 border-emerald-500/40', C: 'text-rose-400 border-rose-500/40', O: 'text-amber-400 border-amber-500/40' };
@@ -345,12 +374,14 @@
         };
 
         window.onload = async () => {
+            poblarSelectApuestas();
             if (supabaseClient) {
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 const modalAuth = document.getElementById('modal-auth');
                 if (session) {
                     modalAuth.classList.add('hidden');
                     usuarioId = session.user.id;
+                    await cargarSaldoUsuario();
                 } else {
                     modalAuth.classList.remove('hidden');
                 }
@@ -358,6 +389,52 @@
             window.cargarLobbySalas();
             escucharLobbyRealtime();
         };
+
+        function poblarSelectApuestas() {
+            const select = document.getElementById('select-apuesta');
+            select.innerHTML = '';
+            
+            // 100 a 2000 (paso 100)
+            for (let v = 100; v <= 2000; v += 100) {
+                const opt = document.createElement('option');
+                opt.value = v;
+                opt.innerText = `${v} Fichas`;
+                select.appendChild(opt);
+            }
+            // 2500 a 10000 (paso 500)
+            for (let v = 2500; v <= 10000; v += 500) {
+                const opt = document.createElement('option');
+                opt.value = v;
+                opt.innerText = `${v} Fichas`;
+                select.appendChild(opt);
+            }
+        }
+
+        async function cargarSaldoUsuario() {
+            if (!supabaseClient || !usuarioId) return;
+            const { data, error } = await supabaseClient
+                .from('usuarios')
+                .select('fichas')
+                .eq('id', usuarioId)
+                .single();
+
+            if (data) {
+                saldoFichasActual = data.fichas;
+            } else {
+                // Cuenta nueva: 0 monedas por defecto
+                saldoFichasActual = 0;
+                await supabaseClient.from('usuarios').insert([{ id: usuarioId, fichas: 0 }]);
+            }
+            document.getElementById('saldoFichas').innerText = saldoFichasActual;
+        }
+
+        async function actualizarSaldoBD(nuevoSaldo) {
+            saldoFichasActual = Math.max(0, nuevoSaldo);
+            document.getElementById('saldoFichas').innerText = saldoFichasActual;
+            if (supabaseClient && usuarioId) {
+                await supabaseClient.from('usuarios').update({ fichas: saldoFichasActual }).eq('id', usuarioId);
+            }
+        }
 
         function cambiarModoAuth(modo) {
             modoAuth = modo;
@@ -477,6 +554,11 @@
                 msg.innerText = 'Completá todos los campos.';
                 return;
             }
+            if (Number(fichas) > saldoFichasActual) {
+                msg.className = 'text-xs mt-2 text-rose-400';
+                msg.innerText = 'No tenés suficiente saldo.';
+                return;
+            }
             msg.className = 'text-xs mt-2 text-amber-300';
             msg.innerText = 'Enviando solicitud...';
 
@@ -490,8 +572,7 @@
                 if (response.ok) {
                     msg.className = 'text-xs mt-2 text-emerald-400';
                     msg.innerText = data.mensaje || '¡Retiro solicitado con éxito!';
-                    const saldoActual = Number(document.getElementById('saldoFichas').innerText);
-                    document.getElementById('saldoFichas').innerText = Math.max(0, saldoActual - Number(fichas));
+                    await actualizarSaldoBD(saldoFichasActual - Number(fichas));
                 } else {
                     throw new Error(data.error);
                 }
@@ -506,7 +587,7 @@
 
             const { data, error } = await supabaseClient
                 .from('salas')
-                .select('id, estado')
+                .select('id, estado, apuesta')
                 .eq('estado', 'ESPERANDO_J2');
 
             const contenedor = document.getElementById('lista-salas');
@@ -522,10 +603,10 @@
                 item.className = "bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 p-2.5 rounded-xl flex justify-between items-center transition shadow-sm";
                 item.innerHTML = `
                     <div class="text-left">
-                        <div class="text-xs font-black text-amber-300">Mesa #${s.id}</div>
+                        <div class="text-xs font-black text-amber-300">Mesa #${s.id} <span class="text-emerald-400 ml-1">($${s.apuesta || 100})</span></div>
                         <div class="text-[10px] text-emerald-400 font-bold">● Esperando rival</div>
                     </div>
-                    <button onclick="window.unirseADeterminadaSala(${s.id})" class="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs py-1.5 px-3.5 rounded-lg transition cursor-pointer shadow">
+                    <button onclick="window.unirseADeterminadaSala(${s.id}, ${s.apuesta || 100})" class="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs py-1.5 px-3.5 rounded-lg transition cursor-pointer shadow">
                         Unirse
                     </button>
                 `;
@@ -546,34 +627,48 @@
 
         window.crearSala = async function() {
             if (!supabaseClient) return;
+            const montoApuesta = Number(document.getElementById('select-apuesta').value);
+
+            if (saldoFichasActual < montoApuesta) {
+                alert(`No tenés suficiente saldo. Necesitás ${montoApuesta} fichas para crear esta sala.`);
+                return;
+            }
+
             const idGen = Math.floor(Math.random() * 89999) + 10000;
 
             const { data, error } = await supabaseClient
                 .from('salas')
-                .insert([{ id: idGen, estado: 'ESPERANDO_J2', jugador1: 'J1_CONECTADO' }])
+                .insert([{ id: idGen, estado: 'ESPERANDO_J2', jugador1: 'J1_CONECTADO', apuesta: montoApuesta }])
                 .select().single();
 
             if (error) { alert("Error al crear sala: " + error.message); return; }
 
             salaId = data.id;
             soyJ1 = true;
+            apuestaSalaActual = montoApuesta;
 
             document.getElementById('menu-salas').classList.add('hidden');
             document.getElementById('panel-juego').classList.remove('hidden');
             document.getElementById('sala-info').innerText = `Mesa: #${salaId}`;
-            document.getElementById('rol-info').innerText = `Rol: Creador`;
+            document.getElementById('apuesta-info').innerText = `Apuesta: $${apuestaSalaActual}`;
 
             escucharCanalRealtime();
         };
 
-        window.unirseADeterminadaSala = async function(idElegida) {
+        window.unirseADeterminadaSala = async function(idElegida, montoApuesta) {
+            if (saldoFichasActual < montoApuesta) {
+                alert(`No tenés suficiente saldo. Necesitás ${montoApuesta} fichas para unirte a esta sala.`);
+                return;
+            }
+
             salaId = idElegida;
             soyJ1 = false;
+            apuestaSalaActual = montoApuesta;
 
             document.getElementById('menu-salas').classList.add('hidden');
             document.getElementById('panel-juego').classList.remove('hidden');
             document.getElementById('sala-info').innerText = `Mesa: #${salaId}`;
-            document.getElementById('rol-info').innerText = `Rol: Rival`;
+            document.getElementById('apuesta-info').innerText = `Apuesta: $${apuestaSalaActual}`;
 
             escucharCanalRealtime();
             await enviarAccionSupabase('J2_UNIDO', {});
@@ -624,10 +719,20 @@
                             procesarAccionRed(paquete.tipo, paquete.data);
                         } catch(e) {}
                     }
-                ).subscribe();
+                )
+                .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'salas', filter: 'id=eq.' + salaId }, () => {
+                    // Si la sala fue borrada por abandono del rival
+                    procesarAbandonoRival();
+                })
+                .subscribe();
         }
 
         function procesarAccionRed(tipo, data) {
+            if (tipo === 'ABANDONO') {
+                procesarAbandonoRival();
+                return;
+            }
+
             if (tipo === 'J2_UNIDO' && soyJ1) {
                 repartirNuevaMano('J1');
                 return;
@@ -637,6 +742,21 @@
                 estadoJuego = data;
                 actualizarInterfaz();
             }
+        }
+
+        function procesarAbandonoRival() {
+            if (!salaId) return;
+            const pozoTotal = apuestaSalaActual * 2;
+            const gananciaNeta = pozoTotal * 0.98; // Descuento del 2% de comisión
+
+            actualizarSaldoBD(saldoFichasActual + (gananciaNeta - apuestaSalaActual));
+
+            document.getElementById('fin-titulo').innerText = "¡Victoria por Abandono!";
+            document.getElementById('fin-mensaje').innerText = "Tu rival abandonó la partida. ¡Te quedás con las fichas!";
+            document.getElementById('fin-ganancia').innerText = `+${Math.floor(gananciaNeta - apuestaSalaActual)} Fichas`;
+            document.getElementById('modal-fin-partida').classList.remove('hidden');
+
+            limpiarEstadoJuego();
         }
 
         function renderizarCartaHTML(cartaObj) {
@@ -651,8 +771,17 @@
             const miRol = soyJ1 ? 'J1' : 'J2';
             const rivalRol = soyJ1 ? 'J2' : 'J1';
 
-            document.getElementById('pts-yo').innerText = soyJ1 ? estadoJuego.ptsJ1 : estadoJuego.ptsJ2;
-            document.getElementById('pts-el').innerText = soyJ1 ? estadoJuego.ptsJ2 : estadoJuego.ptsJ1;
+            const misPts = soyJ1 ? estadoJuego.ptsJ1 : estadoJuego.ptsJ2;
+            const rivalPts = soyJ1 ? estadoJuego.ptsJ2 : estadoJuego.ptsJ1;
+
+            document.getElementById('pts-yo').innerText = misPts;
+            document.getElementById('pts-el').innerText = rivalPts;
+
+            // Verificar si alguien llegó a 15 o 30 puntos para finalizar partida
+            if (misPts >= 30 || rivalPts >= 30) {
+                evaluarFinDePartida(misPts >= 30);
+                return;
+            }
 
             const miTurno = estadoJuego.turnoActual === miRol;
             
@@ -690,8 +819,9 @@
                 contenedor.appendChild(btn);
             });
 
+            // REGLA: Bloquear botón de Truco si NO es tu turno de jugar
             const btnTruco = document.getElementById('btn-truco');
-            if (estadoJuego.ultimoQueCantoTruco === miRol || estadoJuego.nivelTruco >= 4) {
+            if (!miTurno || estadoJuego.ultimoQueCantoTruco === miRol || estadoJuego.nivelTruco >= 4) {
                 btnTruco.classList.add('hidden');
             } else {
                 btnTruco.classList.remove('hidden');
@@ -705,7 +835,7 @@
             const cartaPieMesa = estadoJuego.mesaR1[estadoJuego.manoJugador === 'J1' ? 'J2' : 'J1'];
 
             let puedeCantarEnvido = false;
-            if (estadoJuego.rondaActual === 1 && !estadoJuego.envidoCantado) {
+            if (estadoJuego.rondaActual === 1 && !estadoJuego.envidoCantado && miTurno) {
                 if (!cartaManoMesa && estadoJuego.manoJugador === miRol) {
                     puedeCantarEnvido = true;
                 } else if (cartaManoMesa && !cartaPieMesa && estadoJuego.manoJugador !== miRol) {
@@ -744,6 +874,33 @@
                 document.getElementById('panel-respuesta').classList.add('hidden');
                 document.getElementById('estado-mensaje').innerText = estadoJuego.mensajeEstado || (miTurno ? '¡Es tu turno de jugar o cantar!' : 'Esperando jugada de él...');
             }
+        }
+
+        function evaluarFinDePartida(ganeYo) {
+            const pozoTotal = apuestaSalaActual * 2;
+            const gananciaNetoPura = Math.floor(pozoTotal * 0.98); // 2% deducción
+
+            if (ganeYo) {
+                actualizarSaldoBD(saldoFichasActual + (gananciaNetoPura - apuestaSalaActual));
+                document.getElementById('fin-titulo').innerText = "¡Ganaste la Partida!";
+                document.getElementById('fin-mensaje').innerText = "Felicitaciones, alcanzaste el puntaje máximo.";
+                document.getElementById('fin-ganancia').innerText = `+${gananciaNetoPura - apuestaSalaActual} Fichas`;
+            } else {
+                actualizarSaldoBD(saldoFichasActual - apuestaSalaActual);
+                document.getElementById('fin-titulo').innerText = "Perdiste la Partida";
+                document.getElementById('fin-mensaje').innerText = "Tu rival alcanzó el puntaje máximo.";
+                document.getElementById('fin-ganancia').innerText = `-${apuestaSalaActual} Fichas`;
+            }
+
+            document.getElementById('modal-fin-partida').classList.remove('hidden');
+            limpiarEstadoJuego();
+        }
+
+        function cerrarFinPartida() {
+            document.getElementById('modal-fin-partida').classList.add('hidden');
+            document.getElementById('panel-juego').classList.add('hidden');
+            document.getElementById('menu-salas').classList.remove('hidden');
+            window.cargarLobbySalas();
         }
 
         async function tirarcarta(carta) {
@@ -864,7 +1021,7 @@
                 else if (cadena === 'Envido + Envido + Real Envido') { ptsQuiero = 7; ptsNoQuiero = 4; }
                 else if (tipo === 'Falta Envido') {
                     const maxPts = Math.max(estadoJuego.ptsJ1, estadoJuego.ptsJ2);
-                    ptsQuiero = Math.max(1, 15 - maxPts); 
+                    ptsQuiero = Math.max(1, 30 - maxPts); 
                     ptsNoQuiero = estadoJuego.puntosEnvidoEnJuego || 1;
                 }
 
@@ -955,15 +1112,53 @@
             return max;
         }
 
-        window.cancelarSala = async function() {
-            if (canal) supabaseClient.removeChannel(canal);
+        window.cancelarSala = async function(esAbandonoVoluntario = false) {
             if (salaId) {
+                if (esAbandonoVoluntario) {
+                    await enviarAccionSupabase('ABANDONO', {});
+                }
                 await supabaseClient.from('salas').delete().eq('id', salaId);
             }
+            limpiarEstadoJuego();
             document.getElementById('panel-juego').classList.add('hidden');
             document.getElementById('menu-salas').classList.remove('hidden');
             window.cargarLobbySalas();
         };
+
+        function limpiarEstadoJuego() {
+            if (canal) supabaseClient.removeChannel(canal);
+            salaId = null;
+            soyJ1 = false;
+        }
+        async function comprarFichasMP() {
+    const msg = document.getElementById('msgComprar');
+    if (msg) msg.innerText = "Procesando...";
+
+    try {
+        const inputCantidad = document.getElementById('cantidadComprar');
+        const cantidad = inputCantidad ? inputCantidad.value : 500;
+
+        const response = await fetch('https://truco-brackend.onrender.com/crear-preferencia', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ cantidad: Number(cantidad) })
+        });
+
+        const data = await response.json();
+
+        if (data.init_point) {
+            window.location.href = data.init_point;
+        } else {
+            console.error("Respuesta del servidor:", data);
+            if (msg) msg.innerText = "Error al generar el pago.";
+        }
+    } catch (error) {
+        console.error("Error de conexión:", error);
+        if (msg) msg.innerText = "Error al conectar con el servidor.";
+    }
+}
     </script>
 </body>
 </html>
