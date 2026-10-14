@@ -235,7 +235,7 @@
     </div>
 
     <!-- MODAL COMPRAR FICHAS (MERCADO PAGO) -->
-    <div id="modalComprar" class="fixed inset-0 bg-black/80 flex items-center justify-center hidden p-4 z-50">
+    <div id="modalComprar" class="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl w-full max-w-sm text-center relative shadow-2xl">
             <h2 class="text-lg font-black text-amber-400 mb-2">Comprar Fichas</h2>
             <p class="text-xs text-slate-400 mb-4">1 Ficha = $1 ARS</p>
@@ -243,7 +243,9 @@
                 <label class="text-xs text-slate-300 font-bold">Cantidad de Fichas</label>
                 <input type="number" id="cantidadComprar" min="100" value="500" class="w-full mt-1 p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm">
             </div>
-            <button onclick="comprarFichasMP()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl text-sm transition cursor-pointer mb-2">Pagar con Mercado Pago</button>
+            <button onclick="comprarFichasMP()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl text-sm transition cursor-pointer mb-2">
+                Pagar con Mercado Pago
+            </button>
             <button onclick="toggleModal('modalComprar')" class="text-xs text-slate-500 hover:text-white">Cerrar</button>
             <div id="msgComprar" class="text-xs mt-2"></div>
         </div>
