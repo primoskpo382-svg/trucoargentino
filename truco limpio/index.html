@@ -455,27 +455,37 @@
         }
 
         async function cargarSaldoUsuario() {
-            if (!supabaseClient || !usuarioId) return;
-            const { data, error } = await supabaseClient
-                .from('usuarios')
-                .select('fichas')
-                .eq('id', usuarioId)
-                .single();
-
-            if (data) {
-                saldoFichasActual = data.fichas;
-            } else {
-                saldoFichasActual = 0;
-                await supabaseClient.from('usuarios').insert([{ id: usuarioId, fichas: 0 }]);
+            if (!usuarioId) return;
+            try {
+                const response = await fetch(`${API_URL}/obtener-usuario`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        usuarioId: usuarioId, 
+                        email: `${usuarioId}@jugador.com` 
+                    })
+                });
+                const data = await response.json();
+                if (response.ok && data) {
+                    saldoFichasActual = data.fichas !== undefined ? data.fichas : 10000;
+                    document.getElementById('saldoFichas').innerText = saldoFichasActual;
+                } else {
+                    console.error("Error al obtener usuario del backend:", data);
+                    saldoFichasActual = 10000;
+                    document.getElementById('saldoFichas').innerText = saldoFichasActual;
+                }
+            } catch (err) {
+                console.error("Error de conexión al cargar saldo:", err);
+                saldoFichasActual = 10000;
+                document.getElementById('saldoFichas').innerText = saldoFichasActual;
             }
-            document.getElementById('saldoFichas').innerText = saldoFichasActual;
         }
 
         async function actualizarSaldoBD(nuevoSaldo) {
             saldoFichasActual = Math.max(0, nuevoSaldo);
             document.getElementById('saldoFichas').innerText = saldoFichasActual;
             if (supabaseClient && usuarioId) {
-                await supabaseClient.from('usuarios').update({ fichas: saldoFichasActual }).eq('id', usuarioId);
+                await supabaseClient.from('perfiles').update({ fichas: saldoFichasActual }).eq('usuarios', usuarioId);
             }
         }
 
