@@ -30,7 +30,6 @@ app.post('/obtener-usuario', async (req, res) => {
         const { usuarioId, email } = req.body;
         if (!usuarioId) return res.status(400).json({ error: 'Falta usuarioId' });
 
-        // Consultar en la tabla 'perfiles' buscando por el campo 'usuarios'
         const { data: userData, error } = await supabase
             .from('perfiles')
             .select('*')
@@ -40,7 +39,6 @@ app.post('/obtener-usuario', async (req, res) => {
         if (userData) {
             return res.json(userData);
         } else {
-            // Usuario nuevo -> Insertar en 'perfiles' con 10.000 fichas
             const { data: nuevoUsuario, error: createError } = await supabase
                 .from('perfiles')
                 .upsert([{ 
@@ -63,11 +61,41 @@ app.post('/obtener-usuario', async (req, res) => {
     }
 });
 
+// NUEVO: Endpoint para partidas de 0 fichas o modo gratuito
+const jugarGratisHandler = async (req, res) => {
+    try {
+        const { usuarioId } = req.body;
+        if (!usuarioId) return res.status(400).json({ error: 'Falta usuarioId' });
+
+        // Permitir jugar por 0 fichas validando que el usuario exista
+        const { data: userData, error } = await supabase
+            .from('perfiles')
+            .select('*')
+            .eq('usuarios', usuarioId)
+            .single();
+
+        if (!userData) {
+            // Si no existe, lo creamos con las 10000 iniciales por defecto
+            await supabase.from('perfiles').upsert([{ usuarios: usuarioId, fichas: FICHAS_INICIALES }]);
+        }
+
+        return res.json({ 
+            exito: true, 
+            mensaje: 'Partida iniciada por 0 fichas (Modo gratuito)',
+            costo: 0 
+        });
+    } catch (err) {
+        console.error("Error en /jugar-gratis:", err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
+app.post('/jugar-gratis', jugarGratisHandler);
+app.post('/api/jugar-gratis', jugarGratisHandler);
+
 const crearPreferenciaHandler = async (req, res) => {
     try {
-        console.log("=== DATOS RECIBIDOS DEL FRONTEND ===", req.body);
-        
-        const cantidad = Number(req.body.cantidad || req.body.fichas || 1);
+        const cantidad = Number(req.body.cantidad || req.body.fichas || 1000);
         const PRECIO_POR_FICHA = 1; 
         const precioUnitario = Number(req.body.precio || req.body.price || req.body.monto || PRECIO_POR_FICHA);
         const precioTotal = precioUnitario * (req.body.precio ? 1 : cantidad);
@@ -106,12 +134,10 @@ const crearPreferenciaHandler = async (req, res) => {
 app.post('/crear-preferencia', crearPreferenciaHandler);
 app.post('/api/crear-preferencia', crearPreferenciaHandler);
 
-// WEBHOOK DE MERCADO PAGO PARA ACREDITACIÓN AUTOMÁTICA
+// WEBHOOK DE MERCADO PAGO CORREGIDO (Evita acreditar 0 fichas)
 const webhookHandler = async (req, res) => {
     try {
         const body = req.body;
-        console.log("=== WEBHOOK RECIBIDO DE MP ===", JSON.stringify(body));
-
         let paymentId = null;
         if (body.type === 'payment' && body.data && body.data.id) {
             paymentId = body.data.id;
@@ -125,8 +151,6 @@ const webhookHandler = async (req, res) => {
             const payment = new Payment(client);
             const paymentData = await payment.get({ id: paymentId });
 
-            console.log("Datos del pago consultados en MP:", paymentData.status, "Ref externa:", paymentData.external_reference);
-
             if (paymentData.status === 'approved') {
                 const usuarioId = paymentData.external_reference;
                 
@@ -137,12 +161,13 @@ const webhookHandler = async (req, res) => {
                     if (match) fichasCompradas = Number(match[1]);
                 }
                 
+                // Fallback seguro: si el título no trae número, usa el monto o asigna un mínimo garantizado
                 if (!fichasCompradas || fichasCompradas <= 0) {
-                    fichasCompradas = Number(paymentData.transaction_amount || 0);
+                    const montoPagado = Number(paymentData.transaction_amount || 0);
+                    fichasCompradas = montoPagado > 0 ? montoPagado : 1000;
                 }
 
                 if (usuarioId && usuarioId !== 'demo_user' && fichasCompradas > 0) {
-                    // 1. Consultar saldo actual en la tabla 'perfiles'
                     const { data: userData } = await supabase
                         .from('perfiles')
                         .select('fichas')
@@ -152,7 +177,6 @@ const webhookHandler = async (req, res) => {
                     let saldoActual = userData ? (userData.fichas !== undefined ? userData.fichas : FICHAS_INICIALES) : FICHAS_INICIALES;
                     const nuevoSaldo = saldoActual + fichasCompradas;
 
-                    // 2. Actualizar el saldo en 'perfiles'
                     const { error: updateError } = await supabase
                         .from('perfiles')
                         .upsert([{ usuarios: usuarioId, fichas: nuevoSaldo }]);
@@ -179,20 +203,6 @@ app.post('/api/webhook', webhookHandler);
 app.get('/webhook', (req, res) => {
     res.status(200).send('Endpoint de Webhook activo y operativo');
 });
-
-const solicitarRetiroHandler = async (req, res) => {
-    try {
-        const { usuarioId, fichasARetirar, aliasCbu } = req.body;
-        console.log(`Solicitud de retiro de ${fichasARetirar} fichas para usuario ${usuarioId} a la cuenta/alias: ${aliasCbu}`);
-        res.json({ exito: true, mensaje: '¡Solicitud de retiro enviada con éxito!' });
-    } catch (error) {
-        console.error('Error al solicitar retiro:', error);
-        res.status(500).json({ error: 'Error al procesar el retiro' });
-    }
-};
-
-app.post('/solicitar-retiro', solicitarRetiroHandler);
-app.post('/api/solicitar-retiro', solicitarRetiroHandler);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
