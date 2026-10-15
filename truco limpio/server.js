@@ -156,3 +156,45 @@ const webhookHandler = async (req, res) => {
                     const { error: updateError } = await supabase
                         .from('perfiles')
                         .upsert([{ usuarios: usuarioId, fichas: nuevoSaldo }]);
+
+                    if (updateError) {
+                        console.error("Error al actualizar fichas en Supabase:", updateError);
+                    } else {
+                        console.log(`¡Éxito! Se acreditaron ${fichasCompradas} fichas al usuario ${usuarioId}. Nuevo saldo: ${nuevoSaldo}`);
+                    }
+                }
+            }
+        }
+
+        return res.status(200).send('OK');
+    } catch (error) {
+        console.error('Error procesando webhook de MP:', error);
+        return res.status(200).send('OK');
+    }
+};
+
+app.post('/webhook', webhookHandler);
+app.post('/api/webhook', webhookHandler);
+
+app.get('/webhook', (req, res) => {
+    res.status(200).send('Endpoint de Webhook activo y operativo');
+});
+
+const solicitarRetiroHandler = async (req, res) => {
+    try {
+        const { usuarioId, fichasARetirar, aliasCbu } = req.body;
+        console.log(`Solicitud de retiro de ${fichasARetirar} fichas para usuario ${usuarioId} a la cuenta/alias: ${aliasCbu}`);
+        res.json({ exito: true, mensaje: '¡Solicitud de retiro enviada con éxito!' });
+    } catch (error) {
+        console.error('Error al solicitar retiro:', error);
+        res.status(500).json({ error: 'Error al procesar el retiro' });
+    }
+};
+
+app.post('/solicitar-retiro', solicitarRetiroHandler);
+app.post('/api/solicitar-retiro', solicitarRetiroHandler);
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Servidor de Truco corriendo en el puerto ${PORT}`);
+});
