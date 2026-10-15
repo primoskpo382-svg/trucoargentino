@@ -275,7 +275,7 @@
     <script>
         const SUPABASE_URL = 'https://olvieohhsybycmyojdpo.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_sBg5zRa3r3FS1pJGC5IwNg_Ca4Gy5An';
-        const API_URL = 'http://localhost:3000/api';
+        const API_URL = 'https://truco-brackend.onrender.com';
         
         let usuarioId = null;
         let saldoFichasActual = 0;
@@ -394,14 +394,12 @@
             const select = document.getElementById('select-apuesta');
             select.innerHTML = '';
             
-            // 100 a 2000 (paso 100)
             for (let v = 100; v <= 2000; v += 100) {
                 const opt = document.createElement('option');
                 opt.value = v;
                 opt.innerText = `${v} Fichas`;
                 select.appendChild(opt);
             }
-            // 2500 a 10000 (paso 500)
             for (let v = 2500; v <= 10000; v += 500) {
                 const opt = document.createElement('option');
                 opt.value = v;
@@ -421,7 +419,6 @@
             if (data) {
                 saldoFichasActual = data.fichas;
             } else {
-                // Cuenta nueva: 0 monedas por defecto
                 saldoFichasActual = 0;
                 await supabaseClient.from('usuarios').insert([{ id: usuarioId, fichas: 0 }]);
             }
@@ -517,31 +514,41 @@
         }
 
         async function comprarFichasMP() {
-            const cantidad = document.getElementById('cantidadComprar').value;
             const msg = document.getElementById('msgComprar');
-            if (!cantidad || cantidad <= 0) {
-                msg.className = 'text-xs mt-2 text-rose-400';
-                msg.innerText = 'Ingresá un monto válido.';
-                return;
+            if (msg) {
+                msg.className = 'text-xs mt-2 text-amber-300';
+                msg.innerText = "Generando link de pago...";
             }
-            msg.className = 'text-xs mt-2 text-amber-300';
-            msg.innerText = 'Generando link de pago...';
 
             try {
-                const response = await fetch('https://truco-brackend.onrender.com/crear-preferencia', {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ cantidad: cantidadSeleccionada })
-})
-.then(response => response.json())
-.then(data => {
-    if (data.init_point) {
-        window.location.href = data.init_point; // Te redirige a Mercado Pago
-    }
-})
-.catch(error => console.error('Error:', error));
+                const inputCantidad = document.getElementById('cantidadComprar');
+                const cantidad = inputCantidad ? inputCantidad.value : 500;
+
+                const response = await fetch(`${API_URL}/crear-preferencia`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ cantidad: Number(cantidad) })
+                });
+
+                const data = await response.json();
+
+                if (data.init_point) {
+                    window.location.href = data.init_point;
+                } else {
+                    console.error("Respuesta del servidor:", data);
+                    if (msg) {
+                        msg.className = 'text-xs mt-2 text-rose-400';
+                        msg.innerText = "Error al generar el pago.";
+                    }
+                }
+            } catch (error) {
+                console.error("Error de conexión:", error);
+                if (msg) {
+                    msg.className = 'text-xs mt-2 text-rose-400';
+                    msg.innerText = "Error al conectar con el servidor.";
+                }
             }
         }
 
@@ -563,7 +570,7 @@
             msg.innerText = 'Enviando solicitud...';
 
             try {
-                const response = await fetch(`${API_URL}/solicitar-retiro`, {
+                const response = await fetch(`${API_URL}/api/solicitar-retiro`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ usuarioId: usuarioId, fichasARetirar: Number(fichas), aliasCbu: alias })
@@ -721,7 +728,6 @@
                     }
                 )
                 .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'salas', filter: 'id=eq.' + salaId }, () => {
-                    // Si la sala fue borrada por abandono del rival
                     procesarAbandonoRival();
                 })
                 .subscribe();
@@ -747,7 +753,7 @@
         function procesarAbandonoRival() {
             if (!salaId) return;
             const pozoTotal = apuestaSalaActual * 2;
-            const gananciaNeta = pozoTotal * 0.98; // Descuento del 2% de comisión
+            const gananciaNeta = pozoTotal * 0.98;
 
             actualizarSaldoBD(saldoFichasActual + (gananciaNeta - apuestaSalaActual));
 
@@ -777,7 +783,6 @@
             document.getElementById('pts-yo').innerText = misPts;
             document.getElementById('pts-el').innerText = rivalPts;
 
-            // Verificar si alguien llegó a 15 o 30 puntos para finalizar partida
             if (misPts >= 30 || rivalPts >= 30) {
                 evaluarFinDePartida(misPts >= 30);
                 return;
@@ -819,7 +824,6 @@
                 contenedor.appendChild(btn);
             });
 
-            // REGLA: Bloquear botón de Truco si NO es tu turno de jugar
             const btnTruco = document.getElementById('btn-truco');
             if (!miTurno || estadoJuego.ultimoQueCantoTruco === miRol || estadoJuego.nivelTruco >= 4) {
                 btnTruco.classList.add('hidden');
@@ -878,7 +882,7 @@
 
         function evaluarFinDePartida(ganeYo) {
             const pozoTotal = apuestaSalaActual * 2;
-            const gananciaNetoPura = Math.floor(pozoTotal * 0.98); // 2% deducción
+            const gananciaNetoPura = Math.floor(pozoTotal * 0.98);
 
             if (ganeYo) {
                 actualizarSaldoBD(saldoFichasActual + (gananciaNetoPura - apuestaSalaActual));
@@ -1130,35 +1134,6 @@
             salaId = null;
             soyJ1 = false;
         }
-        async function comprarFichasMP() {
-    const msg = document.getElementById('msgComprar');
-    if (msg) msg.innerText = "Procesando...";
-
-    try {
-        const inputCantidad = document.getElementById('cantidadComprar');
-        const cantidad = inputCantidad ? inputCantidad.value : 500;
-
-        const response = await fetch('https://truco-brackend.onrender.com/crear-preferencia', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ cantidad: Number(cantidad) })
-        });
-
-        const data = await response.json();
-
-        if (data.init_point) {
-            window.location.href = data.init_point;
-        } else {
-            console.error("Respuesta del servidor:", data);
-            if (msg) msg.innerText = "Error al generar el pago.";
-        }
-    } catch (error) {
-        console.error("Error de conexión:", error);
-        if (msg) msg.innerText = "Error al conectar con el servidor.";
-    }
-}
     </script>
 </body>
 </html>
